@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>490</width>
+    <height>537</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item alignment="Qt::AlignmentFlag::AlignBottom">
+    <widget class="QLabel" name="label_nombre_equipo">
+     <property name="text">
+      <string>Nombre del equipo</string>
+     </property>
+    </widget>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignTop">
+    <widget class="QLineEdit" name="lineEdit_equipo_nombre"/>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignBottom">
+    <widget class="QLabel" name="label_curso">
+     <property name="text">
+      <string>Curso</string>
+     </property>
+    </widget>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignTop">
+    <widget class="QLineEdit" name="lineEdit_curso"/>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignBottom">
+    <widget class="QLabel" name="label_camiseta">
+     <property name="text">
+      <string>Color de camiseta</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLineEdit" name="lineEdit_camiseta"/>
+   </item>
+   <item alignment="Qt::AlignmentFlag::AlignBottom">
+    <widget class="QLabel" name="label_logo">
+     <property name="text">
+      <string>Logo</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_imagen_vacia">
+     <property name="frameShape">
+      <enum>QFrame::Shape::Box</enum>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="scaledContents">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="pushButton_enviar">
+     <property name="text">
+      <string>Enviar</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
