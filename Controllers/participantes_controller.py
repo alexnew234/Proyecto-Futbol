@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QTableWidgetItem, QMessageBox
+from PySide6.QtWidgets import QTableWidgetItem, QMessageBox, QAbstractItemView
 from PySide6.QtSql import QSqlQuery
 from Controllers.universal_controller import UniversalController
 
@@ -10,7 +10,7 @@ class ParticipantesController:
         # 1. Inicializamos conexiones de botones
         self.init_connections()
         
-        # 2. Rellenamos el desplegable (¡NUEVO!)
+        # 2. Rellenamos el desplegable
         self.init_filtro_combo()
         
         # 3. Cargamos la lista de gente
@@ -21,7 +21,7 @@ class ParticipantesController:
         if hasattr(self.main_view.ui, 'pushButton_nuevo_participante'):
             self.main_view.ui.pushButton_nuevo_participante.clicked.connect(self.abrir_formulario_participante)
             
-        # (Opcional) Cambio en el combo
+        # Cambio en el combo
         if hasattr(self.main_view.ui, 'comboBox'):
             self.main_view.ui.comboBox.currentIndexChanged.connect(self.cargar_participantes)
         
@@ -35,14 +35,20 @@ class ParticipantesController:
             self.main_view.ui.tableWidget_2.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             self.main_view.ui.tableWidget_2.customContextMenuRequested.connect(self.mostrar_menu_participante)
 
-
     def init_filtro_combo(self):
         """ Rellena el desplegable de arriba con las opciones """
         if hasattr(self.main_view.ui, 'comboBox'):
             combo = self.main_view.ui.comboBox
             combo.clear()
-            # Añadimos las opciones que pedía tu etiqueta
-            combo.addItems(["Todos", "Jugador", "Árbitro"])
+            # Añadimos opciones normales y DE RANKING
+            combo.addItems([
+                "Todos", 
+                "Jugador", 
+                "Árbitro", 
+                "--- Rankings ---",
+                "Máximos Goleadores", 
+                "Más Tarjetas"
+            ])
 
     def abrir_formulario_participante(self):
         self.ventana_nuevo = UniversalController(
@@ -63,28 +69,32 @@ class ParticipantesController:
         if hasattr(self.main_view.ui, 'comboBox'):
             filtro_tipo = self.main_view.ui.comboBox.currentText()
 
-        # CONSULTA ACTUALIZADA: Usando nombres de campos correctos
+        # SQL BASE
         sql = """
             SELECT p.id, p.nombre, p.fecha_nacimiento, p.tipo_participante, 
                    p.curso, p.posicion, 
-                   p.t_amarillas, p.t_rojas, p.goles
+                   p.tarjetas_amarillas, p.tarjetas_rojas, p.goles
             FROM participantes p
         """
         
-        # Filtros
+        # Modificar SQL según el filtro seleccionado
         if filtro_tipo == "Jugador":
             sql += " WHERE p.tipo_participante LIKE '%Jugador%' OR p.tipo_participante = 'Ambos'"
         elif filtro_tipo == "Árbitro":
             sql += " WHERE p.tipo_participante LIKE '%Árbitro%' OR p.tipo_participante = 'Ambos'"
+        elif filtro_tipo == "Máximos Goleadores":
+            sql += " ORDER BY p.goles DESC"
+        elif filtro_tipo == "Más Tarjetas":
+            # Ordenar por suma de tarjetas (Amarillas + Rojas)
+            sql += " ORDER BY (p.tarjetas_amarillas + p.tarjetas_rojas) DESC"
+        elif filtro_tipo == "--- Rankings ---":
+            return # No hacer nada si selecciona el separador
             
         query = QSqlQuery()
         if query.exec(sql):
             fila = 0
             while query.next():
                 tabla.insertRow(fila)
-                
-                # Columnas según tu diseño en Qt Designer:
-                # 0: Nombre, 1: Fecha, 2: Jugador(X), 3: Curso, 4: Árbitro(X), 5: Posición, 6: Amarillas, 7: Rojas, 8: Goles, 9: Acciones
                 
                 id_participante = query.value(0)
                 nombre = query.value(1)
@@ -117,15 +127,12 @@ class ParticipantesController:
                 
                 fila += 1
         else:
-            # Mostrar error en caso de fallo en la consulta
             print(f"Error en consulta de participantes: {query.lastError().text()}")
     
     def editar_participante_desde_tabla(self, index):
         """Editar participante al hacer doble clic en la tabla"""
         tabla = self.main_view.ui.tableWidget_2
-        fila = index.row()  # Obtener la fila directamente del QModelIndex
-        
-        # Obtener el ID del participante
+        fila = index.row()
         item = tabla.item(fila, 0)
         id_participante = item.data(1001)
         

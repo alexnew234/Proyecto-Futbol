@@ -1,0 +1,141 @@
+/* ESTILOS PROYECTO FÚTBOL (Modo Oscuro) */
+
+/* --- FONDO GENERAL --- */
+QMainWindow, QWidget {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* --- MENÚ SUPERIOR --- */
+QMenuBar {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border-bottom: 1px solid #444;
+}
+QMenuBar::item:selected {
+    background-color: #B71C1C;
+}
+QMenu {
+    background-color: #2d2d2d;
+    color: white;
+    border: 1px solid #555;
+}
+
+/* --- TABLAS --- */
+QTableWidget, QTreeWidget, QListView {
+    background-color: #252526;
+    color: #ddd;
+    border: 1px solid #3e3e42;
+    gridline-color: #3e3e42;
+    selection-background-color: #B71C1C;
+    selection-color: white;
+}
+QHeaderView::section {
+    background-color: #333333;
+    color: white;
+    padding: 5px;
+    border: 1px solid #3e3e42;
+    font-weight: bold;
+}
+
+/* --- BOTONES --- */
+QPushButton {
+    background-color: #3c3c3c;
+    border: 1px solid #555;
+    color: white;
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #505050;
+    border: 1px solid #B71C1C;
+}
+
+/* Botones Verdes (Añadir, Guardar) */
+QPushButton#pushButton_anadir_equipo, 
+QPushButton#pushButton_nuevo_participante,
+QPushButton#BtnGuardar {
+    background-color: #1E6637;
+    border: 1px solid #2ECC71;
+}
+QPushButton#pushButton_anadir_equipo:hover, 
+QPushButton#pushButton_nuevo_participante:hover,
+QPushButton#BtnGuardar:hover {
+    background-color: #2ECC71;
+    color: black;
+}
+
+/* Botones Rojos (Eliminar) */
+QPushButton#pushButton_eliminar_equipo {
+    background-color: #781818; 
+    border: 1px solid #E74C3C;
+}
+QPushButton#pushButton_eliminar_equipo:hover {
+    background-color: #E74C3C; 
+    color: white;
+}
+
+/* --- INPUTS --- */
+QLineEdit, QComboBox, QDateEdit {
+    background-color: #3c3c3c;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px;
+    min-height: 25px; 
+}
+QLineEdit:focus, QComboBox:focus {
+    border: 2px solid #B71C1C;
+}
+
+/* --- SPINBOX (Números) --- */
+QSpinBox {
+    background-color: #3c3c3c;
+    color: white;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 5px 25px 5px 5px;
+    font-size: 18px; 
+    font-weight: bold;
+    min-height: 30px; 
+}
+
+/* Arreglo para flechas del SpinBox */
+QSpinBox::up-button, QSpinBox::down-button {
+    subcontrol-origin: border;
+    width: 20px;
+    background-color: #444;
+    border: 1px solid #666;
+}
+QSpinBox::up-button {
+    subcontrol-position: top right;
+    border-bottom: 1px solid #666;
+    border-top-right-radius: 4px;
+}
+QSpinBox::down-button {
+    subcontrol-position: bottom right;
+    border-bottom-right-radius: 4px;
+}
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+    background-color: #B71C1C;
+}
+
+/* --- CAJAS DE GRUPO --- */
+QGroupBox {
+    border: 1px solid #555;
+    border-radius: 6px;
+    margin-top: 22px;
+    font-weight: bold;
+    color: #ccc;
+    padding-top: 10px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 0 5px;
+    color: #B71C1C;
+    background-color: #1e1e1e;
+}

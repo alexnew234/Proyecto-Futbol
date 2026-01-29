@@ -11,17 +11,16 @@ class UniversalController:
         self.view = FormUniversalView()
         self.modo_actual = modo
         self.refrescar_lista = callback_refresh
-        self.datos_editar = datos_editar # Guardamos los datos si existen
-        self.id_editar = id_editar # ID para editar participante
+        self.datos_editar = datos_editar 
+        self.id_editar = id_editar 
         
         # Configuración según modo
         if self.modo_actual == "EQUIPO":
             self.view.modo_equipo()
             self.view.btn_imagen.clicked.connect(self.seleccionar_imagen)
             
-            # --- DETECCIÓN DE MODO EDICIÓN ---
             if self.datos_editar:
-                self.rellenar_datos_equipo() # Función nueva para rellenar
+                self.rellenar_datos_equipo()
         else:
             self.view.modo_participante()
             self.cargar_equipos_en_combo()
@@ -35,7 +34,6 @@ class UniversalController:
 
     def rellenar_datos_equipo(self):
         """ Rellena los campos con la info que le pasamos """
-        # Desempaquetamos los datos: (id, nombre, curso, color, ruta)
         _, nombre, curso, color, ruta = self.datos_editar
         
         self.view.lbl_titulo.setText("Editar Equipo")
@@ -54,7 +52,7 @@ class UniversalController:
         query = QSqlQuery()
         query.prepare("""
             SELECT nombre, fecha_nacimiento, curso, tipo_participante, posicion, 
-                   t_amarillas, t_rojas, goles, id_equipo
+                   tarjetas_amarillas, tarjetas_rojas, goles, id_equipo
             FROM participantes WHERE id = ?
         """)
         query.addBindValue(self.id_editar)
@@ -64,12 +62,14 @@ class UniversalController:
             self.view.btn_guardar.setText("Actualizar Participante")
             
             self.view.txt_part_nombre.setText(query.value(0) or "")
-            # Convertir fecha de texto a QDate
+            
+            # Fecha
             fecha_str = query.value(1) or ""
             if fecha_str:
                 from PySide6.QtCore import QDate
                 fecha = QDate.fromString(fecha_str, "yyyy-MM-dd")
                 self.view.date_nacimiento.setDate(fecha)
+            
             self.view.txt_part_curso.setText(query.value(2) or "")
             
             # Combobox tipo
@@ -121,16 +121,21 @@ class UniversalController:
         color = self.view.txt_eq_camiseta.text()
         ruta = self.view.lbl_ruta_imagen.text()
 
+        # --- VALIDACIONES ---
         if not nombre:
-            QMessageBox.warning(self.view, "Error", "Falta el nombre")
+            QMessageBox.warning(self.view, "Error", "El nombre no puede estar vacío.")
+            return
+
+        # VALIDACIÓN NUEVA: NO NÚMEROS
+        if any(char.isdigit() for char in nombre):
+            QMessageBox.warning(self.view, "Error", "El nombre del equipo no puede contener números.")
             return
 
         query = QSqlQuery()
         
-        # --- DECISIÓN: ¿INSERTAR O ACTUALIZAR? ---
         if self.datos_editar:
-            # MODO EDICIÓN (UPDATE)
-            id_equipo = self.datos_editar[0] # El ID es el primer dato
+            # UPDATE
+            id_equipo = self.datos_editar[0]
             query.prepare("UPDATE equipos SET nombre=?, curso=?, color_camiseta=?, ruta_escudo=? WHERE id=?")
             query.addBindValue(nombre)
             query.addBindValue(curso)
@@ -139,7 +144,7 @@ class UniversalController:
             query.addBindValue(id_equipo)
             mensaje = "Equipo actualizado correctamente"
         else:
-            # MODO NUEVO (INSERT)
+            # INSERT
             query.prepare("INSERT INTO equipos (nombre, curso, color_camiseta, ruta_escudo) VALUES (?, ?, ?, ?)")
             query.addBindValue(nombre)
             query.addBindValue(curso)
@@ -156,32 +161,37 @@ class UniversalController:
             QMessageBox.critical(self.view, "Error SQL", query.lastError().text())
 
     def guardar_participante(self):
-        # 1. Recogemos TODOS los datos del formulario
+        # 1. Recogemos datos
         nombre = self.view.txt_part_nombre.text()
-        fecha = self.view.date_nacimiento.text()
+        fecha = self.view.date_nacimiento.date().toString("yyyy-MM-dd")
         curso = self.view.txt_part_curso.text()
         tipo = self.view.combo_tipo.currentText()
         posicion = self.view.combo_posicion.currentText()
         id_equipo = self.view.combo_equipo_asignado.currentData()
         
-        # Estadísticas
         amarillas = self.view.spin_amarillas.value()
         rojas = self.view.spin_rojas.value()
         goles = self.view.spin_goles.value()
 
+        # --- VALIDACIONES ---
         if not nombre:
-            QMessageBox.warning(self.view, "Error", "Falta el nombre")
+            QMessageBox.warning(self.view, "Error", "El nombre no puede estar vacío.")
+            return
+
+        # VALIDACIÓN NUEVA: NO NÚMEROS
+        if any(char.isdigit() for char in nombre):
+            QMessageBox.warning(self.view, "Error", "El nombre del participante no puede contener números.")
             return
 
         query = QSqlQuery()
         
         # 2. INSERT O UPDATE
         if self.id_editar:
-            # MODO EDICIÓN (UPDATE)
+            # UPDATE
             query.prepare("""
                 UPDATE participantes 
                 SET nombre=?, fecha_nacimiento=?, curso=?, tipo_participante=?, posicion=?, 
-                    t_amarillas=?, t_rojas=?, goles=?, id_equipo=?
+                    tarjetas_amarillas=?, tarjetas_rojas=?, goles=?, id_equipo=?
                 WHERE id = ?
             """)
             query.addBindValue(nombre)
@@ -196,11 +206,11 @@ class UniversalController:
             query.addBindValue(self.id_editar)
             mensaje = "Participante actualizado correctamente"
         else:
-            # MODO NUEVO (INSERT)
+            # INSERT
             query.prepare("""
                 INSERT INTO participantes 
                 (nombre, fecha_nacimiento, curso, tipo_participante, posicion, 
-                 t_amarillas, t_rojas, goles, id_equipo) 
+                 tarjetas_amarillas, tarjetas_rojas, goles, id_equipo) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """)
             query.addBindValue(nombre)
