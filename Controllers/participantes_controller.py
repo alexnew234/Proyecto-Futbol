@@ -7,6 +7,18 @@ class ParticipantesController:
         self.main_view = main_window
         self.ventana_nuevo = None
 
+        # --- MODIFICACIÓN: OCULTAR EL BOTÓN "GENERAR RONDAS" ---
+        # Probamos los nombres más probables para asegurar que se oculte
+        if hasattr(self.main_view.ui, 'btn_generar_rondas'):
+            self.main_view.ui.btn_generar_rondas.hide()
+        
+        if hasattr(self.main_view.ui, 'pushButton_generar_rondas'):
+            self.main_view.ui.pushButton_generar_rondas.hide()
+            
+        if hasattr(self.main_view.ui, 'btn_generar_ronda'):
+            self.main_view.ui.btn_generar_ronda.hide()
+        # -------------------------------------------------------
+
         # 1. Inicializamos conexiones de botones
         self.init_connections()
         

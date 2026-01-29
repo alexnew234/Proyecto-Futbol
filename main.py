@@ -3,7 +3,6 @@ import os
 from PySide6.QtWidgets import QApplication, QHeaderView
 
 # --- REQUISITO OBLIGATORIO PDF: Usar la librería externa ---
-# Si da error, ejecuta 'pip install -e .' en la carpeta torneofutbol_db
 try:
     from torneo_db.database import inicializar_db, get_db_path
 except ImportError:
@@ -14,19 +13,26 @@ except ImportError:
 from Views.main_window import MainWindow
 from Controllers.main_controller import MainController
 
+def obtener_ruta_recurso(ruta_relativa):
+    """ Función auxiliar para rutas en .exe y desarrollo """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, ruta_relativa)
+
 def cargar_estilos(app):
     """
-    Carga el archivo QSS externo desde Resources/qss/estilos.qss
+    Carga el archivo QSS externo de forma compatible con .exe
     """
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    ruta_qss = os.path.join(base_path, "Resources", "qss", "estilos.qss")
+    # Usamos la función auxiliar para encontrar el archivo
+    ruta_qss = obtener_ruta_recurso(os.path.join("Resources", "qss", "estilos.qss"))
     
     if os.path.exists(ruta_qss):
         try:
             with open(ruta_qss, "r") as f:
                 estilo = f.read()
                 app.setStyleSheet(estilo)
-            # Sin iconos para evitar errores en Windows
             print(f"[OK] Estilos cargados desde: {ruta_qss}")
         except Exception as e:
             print(f"[ERROR] Error al leer el archivo QSS: {e}")
@@ -54,7 +60,7 @@ if __name__ == "__main__":
     # 1. Cargar estilos
     cargar_estilos(app) 
     
-    # 2. Inicializar DB usando la librería EXTERNA
+    # 2. Inicializar DB
     print(f"Usando base de datos en: {get_db_path()}")
     
     if inicializar_db():

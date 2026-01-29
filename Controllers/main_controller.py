@@ -1,10 +1,11 @@
 import csv
-import os # <--- Nuevo import necesario para las rutas
+import sys
+import os 
 from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QFileDialog, QTableWidget, 
-    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel # <--- QLabel añadido
+    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel
 )
-from PySide6.QtGui import QAction, QColor, QBrush, QPixmap # <--- QPixmap añadido
+from PySide6.QtGui import QAction, QColor, QBrush, QPixmap
 from PySide6.QtCore import Qt
 from PySide6.QtSql import QSqlQuery
 
@@ -35,10 +36,10 @@ class MainController:
 
         # 3. Configuración visual
         self.arreglar_botones_rebeldes()
-        self.setup_dashboard_logo() # <--- NUEVA LLAMADA PARA PONER LA FOTO
+        self.setup_dashboard_logo() 
 
     def setup_dashboard_logo(self):
-        """Inserta la imagen de la RFEF en el Dashboard"""
+        """Inserta la imagen de la RFEF en el Dashboard (Compatible con .exe y normal)"""
         try:
             # Obtenemos la página del dashboard (índice 0 del StackedWidget)
             page_dashboard = self.view.ui.stackedWidget.widget(0)
@@ -51,8 +52,16 @@ class MainController:
             lbl_imagen = QLabel()
             lbl_imagen.setAlignment(Qt.AlignCenter)
             
-            # Construimos la ruta: Carpeta del proyecto + Resources + img + logo_rfef.jpg
-            ruta_img = os.path.join(os.getcwd(), "Resources", "img", "logo_rfef.jpg")
+            # --- MODIFICACIÓN NECESARIA PARA EL .EXE ---
+            # Determinamos la ruta base dependiendo de si es .exe o script normal
+            if hasattr(sys, '_MEIPASS'):
+                base_path = sys._MEIPASS
+            else:
+                base_path = os.getcwd()
+            
+            # Construimos la ruta: Carpeta base + Resources + img + logo_rfef.jpg
+            ruta_img = os.path.join(base_path, "Resources", "img", "logo_rfef.jpg")
+            # -------------------------------------------
             
             if os.path.exists(ruta_img):
                 pixmap = QPixmap(ruta_img)
@@ -61,7 +70,6 @@ class MainController:
                 lbl_imagen.setPixmap(pixmap)
                 
                 # Insertamos en el layout (Posición 1: Debajo del Título, Encima de los botones)
-                # Asumiendo que el layout es vertical
                 page_dashboard.layout().insertWidget(1, lbl_imagen)
             else:
                 print(f"[AVISO] No se encontró la imagen en: {ruta_img}")
@@ -106,10 +114,35 @@ class MainController:
             QMessageBox.critical(self.view, "Error", f"Error al guardar: {e}")
 
     def mostrar_creditos(self):
-        QMessageBox.information(self.view, "Créditos", "Proyecto Fútbol v1.0\nDesarrollado con Python y PySide6.")
+        """ Muestra la pantalla de créditos con Autor, Versión y Fecha """
+        titulo = "Acerca de - Gestor de Torneos"
+        texto = """
+        <h3>⚽ Gestor de Torneos de Fútbol</h3>
+        <p>Aplicación para la gestión integral de competiciones deportivas.</p>
+        <hr>
+        <p><b>👤 Autor:</b> Alex</p>
+        <p><b>📅 Fecha de Actualización:</b> 29 de Enero de 2026</p>
+        <p><b>🏷️ Versión:</b> 1.0.0 (Release Final)</p>
+        <hr>
+        <p><i>Desarrollado con Python 3.13, PySide6 y SQLite.</i></p>
+        """
+        QMessageBox.about(self.view, titulo, texto)
 
     def mostrar_ayuda(self):
-        QMessageBox.information(self.view, "Ayuda", "Usa el menú superior para navegar entre Equipos, Jugadores, Partidos y Clasificación.")
+        """ Muestra una guía rápida de uso """
+        titulo = "Ayuda - Guía Rápida"
+        texto = """
+        <h3>📖 Cómo utilizar el Gestor</h3>
+        <ol>
+            <li><b>Crear Equipos:</b> Ve a la pestaña 'Equipos' y registra los clubes participantes.</li>
+            <li><b>Generar Torneo:</b> En la pestaña 'Partidos', pulsa el botón verde <b>'Generar Siguiente Ronda'</b>.</li>
+            <li><b>Registrar Resultados:</b> Haz <b>doble clic</b> sobre un partido del calendario para editar el marcador, la fecha y asignar goles a jugadores.</li>
+            <li><b>Eliminar Errores:</b> Haz <b>clic derecho</b> sobre un partido si necesitas borrarlo.</li>
+            <li><b>Ver Clasificación:</b> Consulta la tabla actualizada automáticamente en la sección 'Clasificación'.</li>
+        </ol>
+        <p><i>Nota: Es necesario completar todos los partidos de una ronda para poder generar la siguiente.</i></p>
+        """
+        QMessageBox.about(self.view, titulo, texto)
 
     def arreglar_botones_rebeldes(self):
         page_cal = self.view.ui.page_calendario
