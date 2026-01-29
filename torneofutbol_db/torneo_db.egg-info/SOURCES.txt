@@ -1,0 +1,7 @@
+setup.py
+torneo_db/__init__.py
+torneo_db/database.py
+torneo_db.egg-info/PKG-INFO
+torneo_db.egg-info/SOURCES.txt
+torneo_db.egg-info/dependency_links.txt
+torneo_db.egg-info/top_level.txt
