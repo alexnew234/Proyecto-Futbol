@@ -16,6 +16,7 @@ Este proyecto utiliza una **arquitectura modular estricta**. El acceso a datos s
 
 ### 1. Instalación de la Librería de Base de Datos
 **Paso obligatorio.** El programa fallará si no se instala primero este módulo.
+Nota: Si utilizas directamente el archivo GestorTorneos.exe, no es necesario realizar esta instalación manual ya que la librería viene integrada en el ejecutable. Este paso es solo para ejecutar el código fuente (.py).
 
 1.  Abre una terminal.
 2.  Navega a la carpeta de la librería externa (`torneofutbol_db`):
