@@ -449,13 +449,13 @@ class CalendarioController:
         # =========================================================
         
         self.reloj_partido = RelojDigital()
+        # CONFIGURACIÓN PARA CONTEXTO DE PARTIDO (Modo Timer)
         self.reloj_partido.mode = ModoReloj.TIMER
-        self.reloj_partido.is24Hour = True
-        self.reloj_partido.alarmMessage = QCoreApplication.translate("Calendario", "¡Tiempo de partido finalizado!", None)
-        self.reloj_partido._alarmEnabled = True
+        self.reloj_partido.duracionPartido = 90 * 60  # Duración configurable
+        self.reloj_partido.alarmMessage = "¡FIN DEL TIEMPO REGLAMENTARIO!" 
+        self.reloj_partido.alarmEnabled = True
         
-        self.reloj_partido.alarmTriggered.connect(lambda msg: QMessageBox.information(dialog, "Árbitro", msg))
-        
+        self.reloj_partido.alarmTriggered.connect(lambda msg: QMessageBox.information(dialog, "Tiempo", msg))        
         layout.addWidget(QLabel("⏱ CRONÓMETRO DEL PARTIDO", font=QFont("Arial", 10, QFont.Bold)))
         layout.addWidget(self.reloj_partido)
         

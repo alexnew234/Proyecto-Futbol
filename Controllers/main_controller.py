@@ -3,7 +3,7 @@ import sys
 import os 
 from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QFileDialog, QTableWidget, 
-    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel
+    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel, QVBoxLayout
 )
 from PySide6.QtGui import QAction, QColor, QBrush, QPixmap
 from PySide6.QtCore import Qt
@@ -12,10 +12,14 @@ from PySide6.QtSql import QSqlQuery
 from Controllers.equipos_controller import EquiposController
 from Controllers.participantes_controller import ParticipantesController
 from Controllers.calendario_controller import CalendarioController
+# IMPORTACIÓN DEL COMPONENTE RELOJ
+from Views.reloj_widget import RelojDigital, ModoReloj
+
 
 class MainController:
     def __init__(self, main_window):
         self.view = main_window
+        self.ui = main_window.ui # Acceso directo a la UI
         
         # 1. Controladores
         self.equipos_ctrl = EquiposController(main_window)
@@ -37,6 +41,9 @@ class MainController:
         # 3. Configuración visual
         self.arreglar_botones_rebeldes()
         self.setup_dashboard_logo() 
+        
+        # 4. CONFIGURACIÓN DEL RELOJ EN EL DASHBOARD (Requisito: "Uso en distintos contextos")
+        self.setup_reloj_dashboard()
 
     def setup_dashboard_logo(self):
         """Inserta la imagen de la RFEF en el Dashboard (Compatible con .exe y normal)"""
@@ -76,6 +83,52 @@ class MainController:
                 
         except Exception as e:
             print(f"No se pudo cargar el logo del dashboard: {e}")
+
+    def setup_reloj_dashboard(self):
+        """
+        Crea e inserta el reloj digital en el panel principal (Contexto: Reloj de Sistema)
+        """
+        try:
+            # 1. Instanciar el componente
+            page_dashboard = self.ui.stackedWidget.widget(0)
+            self.reloj_sistema = RelojDigital(page_dashboard)
+            
+            # 2. Configuración Lógica
+            self.reloj_sistema.mode = ModoReloj.CLOCK
+            self.reloj_sistema.is24Hour = True
+            self.reloj_sistema.alarmEnabled = False
+            
+            # 3. ESTILO Y TAMAÑO (Aquí lo hacemos pequeño)
+            # Forzamos un tamaño fijo para que no ocupe toda la pantalla
+            self.reloj_sistema.setFixedSize(280, 60) 
+            
+            # Sobrescribimos el estilo para reducir la fuente (de 48px a 24px)
+            # y quitar bordes o fondos extraños
+            self.reloj_sistema.setStyleSheet("""
+                QLabel { 
+                    font-size: 24px; 
+                    font-family: 'Arial';
+                    color: #00ff00; 
+                    background-color: transparent;
+                }
+            """)
+            
+            # 4. Iniciar
+            self.reloj_sistema.start()
+            
+            # 5. INSERTAR EN LA INTERFAZ
+            if page_dashboard.layout():
+                # Index 1: Lo coloca justo DEBAJO del Título (que suele ser index 0)
+                # Qt.AlignCenter: Lo centra. 
+                # (Si lo quieres en una esquina, cambia Qt.AlignCenter por Qt.AlignRight)
+                page_dashboard.layout().insertWidget(1, self.reloj_sistema, 0, Qt.AlignCenter)
+            else:
+                layout = QVBoxLayout(page_dashboard)
+                page_dashboard.setLayout(layout)
+                layout.insertWidget(1, self.reloj_sistema, 0, Qt.AlignCenter)
+                
+        except Exception as e:
+            print(f"Error al cargar el reloj en dashboard: {e}")
 
     def exportar_csv(self):
         """ Exportar datos a CSV """
@@ -191,7 +244,7 @@ class MainController:
             self.equipos_ctrl.cargar_lista_equipos()
         if indice == 4:
             self.participantes_ctrl.cargar_participantes()
-    
+
     def actualizar_clasificacion(self):
         """Calcula y muestra la clasificación REAL desde la BD"""
         # Buscar la tabla en el scroll area

@@ -5,29 +5,38 @@ class DashboardView(QWidget):
     def __init__(self):
         super().__init__()
         
-        # Layout principal vertical (Título + Rejilla de botones)
+        # Layout principal vertical
         layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
-        layout.setSpacing(40)
+        # AlignTop es clave para que empiece pegado arriba
+        layout.setAlignment(Qt.AlignTop | Qt.AlignCenter) 
+        layout.setSpacing(10) 
+        
+        # --- CAMBIO AQUÍ: Margen superior reducido a 10 (antes 40) ---
+        # (Izquierda, Arriba, Derecha, Abajo)
+        layout.setContentsMargins(0, 10, 0, 0) 
         self.setLayout(layout)
 
-        # TÍTULO GRANDE
+        # 1. TÍTULO
         lbl_titulo = QLabel("Panel de Control RFEF")
-        lbl_titulo.setStyleSheet("font-size: 32px; font-weight: bold; color: #B71C1C; margin-bottom: 20px;")
+        lbl_titulo.setStyleSheet("font-size: 20px; font-weight: bold; color: #B71C1C;")
         lbl_titulo.setAlignment(Qt.AlignCenter)
+        
+        # Mantenemos el fixedHeight pequeño para "comprimir" el espacio del título
+        lbl_titulo.setFixedHeight(30) 
+        
         layout.addWidget(lbl_titulo)
 
-        # REJILLA DE BOTONES (Grid)
+        # 2. ESPACIO RESERVADO (El controlador insertará el reloj aquí, debajo del título)
+
+        # 3. REJILLA DE BOTONES
         grid = QGridLayout()
         grid.setSpacing(20)
         
-        # Definimos los botones
         self.btn_partidos = QPushButton("Gestión de Partidos")
         self.btn_resultados = QPushButton("Resultados / Clasificación")
         self.btn_equipos = QPushButton("Equipos")
         self.btn_participantes = QPushButton("Participantes")
 
-        # Estilo específico para que sean BOTONES GIGANTES
         estilo_boton = """
             QPushButton {
                 font-size: 18px;
@@ -39,7 +48,7 @@ class DashboardView(QWidget):
                 border: 2px solid #555;
             }
             QPushButton:hover {
-                background-color: #B71C1C; /* Rojo al pasar el ratón */
+                background-color: #B71C1C;
                 border: 2px solid #ff5555;
             }
         """
@@ -48,10 +57,18 @@ class DashboardView(QWidget):
             btn.setStyleSheet(estilo_boton)
             btn.setCursor(Qt.PointingHandCursor)
 
-        # Añadimos al Grid (Fila, Columna)
         grid.addWidget(self.btn_partidos, 0, 0)
         grid.addWidget(self.btn_resultados, 0, 1)
         grid.addWidget(self.btn_equipos, 1, 0)
         grid.addWidget(self.btn_participantes, 1, 1)
 
-        layout.addLayout(grid)
+        # Contenedor para el grid
+        grid_container = QWidget()
+        grid_container.setLayout(grid)
+        
+        # Le damos un margen superior extra al grid para separarlo un poco del reloj
+        # Así el reloj queda pegado al título, pero los botones bajan un poco
+        layout.addWidget(grid_container)
+        
+        # Espaciador final para empujar todo hacia arriba con fuerza
+        layout.addStretch()
