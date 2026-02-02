@@ -5,8 +5,9 @@ from PySide6.QtWidgets import (
     QAbstractSpinBox, QComboBox, QDateEdit, QTimeEdit, QMenu, QTabWidget
 )
 from PySide6.QtSql import QSqlQuery
-from PySide6.QtCore import Qt, QDate, QTime
+from PySide6.QtCore import Qt, QDate, QTime, QCoreApplication
 from PySide6.QtGui import QFont, QColor, QAction
+from Views.reloj_widget import RelojDigital, ModoReloj
 import random
 
 # ============================================================================
@@ -105,6 +106,7 @@ class CalendarioController:
     def __init__(self, main_window, main_controller=None):
         self.main_view = main_window
         self.main_controller = main_controller
+        self.view = main_window # Referencia extra por compatibilidad
         
         self.page_calendario = self.main_view.ui.page_calendario
         self.tree_widget = self.main_view.ui.treeWidget_partidos
@@ -317,7 +319,6 @@ class CalendarioController:
                 self.main_controller.actualizar_clasificacion()
 
     def generar_siguiente_ronda(self):
-        """Genera partidos automáticamente (Octavos -> Cuartos -> Semis -> Final)"""
         fases_orden = ["Final", "Semifinal", "Cuartos", "Octavos"]
         fase_actual = None
         
@@ -412,7 +413,7 @@ class CalendarioController:
             QMessageBox.warning(self.main_view, "Error", "Fallo al generar.")
 
     def editar_partido(self, item, column):
-        """Abre ventana flotante de edición"""
+        """Abre ventana flotante de edición con RELOJ INTEGRADO"""
         if item.parent() is None: return
         
         id_partido = item.data(0, Qt.ItemDataRole.UserRole)
@@ -437,13 +438,59 @@ class CalendarioController:
 
         dialog = QDialog(self.main_view)
         dialog.setWindowTitle(f"{local} vs {visit}")
-        dialog.setFixedSize(500, 700) 
+        dialog.setFixedSize(500, 800) 
         dialog.setStyleSheet("background-color: #252526; color: white;")
         
         layout = QVBoxLayout()
         layout.setSpacing(15)
 
-        # --- MARCADOR (Con nuevo diseño) ---
+        # =========================================================
+        # RELOJ DIGITAL - INICIO AUTOMÁTICO Y REINICIO
+        # =========================================================
+        
+        self.reloj_partido = RelojDigital()
+        self.reloj_partido.mode = ModoReloj.TIMER
+        self.reloj_partido.is24Hour = True
+        self.reloj_partido.alarmMessage = QCoreApplication.translate("Calendario", "¡Tiempo de partido finalizado!", None)
+        self.reloj_partido._alarmEnabled = True
+        
+        self.reloj_partido.alarmTriggered.connect(lambda msg: QMessageBox.information(dialog, "Árbitro", msg))
+        
+        layout.addWidget(QLabel("⏱ CRONÓMETRO DEL PARTIDO", font=QFont("Arial", 10, QFont.Bold)))
+        layout.addWidget(self.reloj_partido)
+        
+        # --- BOTONES DE CONTROL ---
+        layout_reloj_btns = QHBoxLayout()
+        
+        btn_iniciar_reloj = QPushButton("▶ Iniciar")
+        btn_iniciar_reloj.clicked.connect(self.reloj_partido.start)
+        btn_iniciar_reloj.setStyleSheet("background-color: #2d7d2d; color: white;")
+        
+        btn_pausar_reloj = QPushButton("⏸ Pausar")
+        btn_pausar_reloj.clicked.connect(self.reloj_partido.pause)
+        btn_pausar_reloj.setStyleSheet("background-color: #d8a600; color: black;")
+        
+        # --- BOTÓN REINICIAR NUEVO ---
+        btn_reiniciar_reloj = QPushButton("↺ Reiniciar")
+        btn_reiniciar_reloj.clicked.connect(self.reloj_partido.reset)
+        btn_reiniciar_reloj.setStyleSheet("background-color: #7d2d2d; color: white;")
+        
+        layout_reloj_btns.addWidget(btn_iniciar_reloj)
+        layout_reloj_btns.addWidget(btn_pausar_reloj)
+        layout_reloj_btns.addWidget(btn_reiniciar_reloj) # Añadido
+        
+        layout.addLayout(layout_reloj_btns)
+        
+        # --- AUTO-INICIO AL ABRIR ---
+        self.reloj_partido.start()
+        
+        # Separador visual
+        linea_reloj = QWidget()
+        linea_reloj.setFixedHeight(2)
+        linea_reloj.setStyleSheet("background-color: #444; margin: 10px 0;")
+        layout.addWidget(linea_reloj)
+        # =========================================================
+
         layout.addWidget(QLabel(f"Goles {local}:", font=QFont("Arial", 12, QFont.Bold)))
         w_local = crear_spinbox_con_botones(local, gl)
         layout.addWidget(w_local)
@@ -452,27 +499,22 @@ class CalendarioController:
         w_visit = crear_spinbox_con_botones(visit, gv)
         layout.addWidget(w_visit)
 
-        # Separador visual
         linea = QWidget()
         linea.setFixedHeight(2)
         linea.setStyleSheet("background-color: #444; margin: 10px 0;")
         layout.addWidget(linea)
 
-        # Fecha y Hora (Layout Horizontal)
         lh = QHBoxLayout()
-        
         v1 = QVBoxLayout()
         v1.addWidget(QLabel("Fecha:"))
         date_edit = QDateEdit()
         date_edit.setCalendarPopup(True)
         date_edit.setStyleSheet("QDateEdit { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; }")
         date_edit.setMinimumDate(QDate.currentDate())
-        
         if fecha_bd:
             date_edit.setDate(QDate.fromString(fecha_bd, "yyyy-MM-dd"))
         else:
             date_edit.setDate(QDate.currentDate())
-            
         v1.addWidget(date_edit)
         lh.addLayout(v1)
 
@@ -480,21 +522,16 @@ class CalendarioController:
         v2.addWidget(QLabel("Hora:"))
         combo_hora = QComboBox()
         combo_hora.setStyleSheet("QComboBox { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; } QComboBox::drop-down { border: none; }")
-        
         for h in range(9, 24):
             combo_hora.addItems([f"{h:02d}:00", f"{h:02d}:30"])
-            
         if hora_bd:
             combo_hora.setCurrentText(hora_bd)
         else:
             combo_hora.setCurrentText("21:00")
-            
         v2.addWidget(combo_hora)
         lh.addLayout(v2)
-        
         layout.addLayout(lh)
 
-        # Árbitro
         layout.addWidget(QLabel("Árbitro asignado:"))
         combo_arb = QComboBox()
         combo_arb.setStyleSheet("QComboBox { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; }")
@@ -511,26 +548,19 @@ class CalendarioController:
         combo_arb.setCurrentIndex(idx_sel)
         layout.addWidget(combo_arb)
 
-        # Botón Jugadores
         btn_players = QPushButton("Gestionar Goles y Tarjetas (Jugadores)")
         btn_players.setStyleSheet("QPushButton { background-color: #1a5d7d; color: white; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; } QPushButton:hover { background-color: #2a7d9d; }")
         
-        # Reemplazamos la lógica simple por una que sume al marcador visual
         def gestionar_y_sumar():
             goles_l_antes = w_local.spinbox.value()
             goles_v_antes = w_visit.spinbox.value()
-            
-            # Abrir ventana y esperar que cierre
             goles_l_nuevos, goles_v_nuevos = self.gestionar_jugadores(id_local, id_visitante)
-            
-            # Sumar lo nuevo al marcador visual
             w_local.spinbox.setValue(goles_l_antes + goles_l_nuevos)
             w_visit.spinbox.setValue(goles_v_antes + goles_v_nuevos)
 
         btn_players.clicked.connect(gestionar_y_sumar)
         layout.addWidget(btn_players)
 
-        # Guardar
         btn_save = QPushButton("GUARDAR RESULTADO DEL PARTIDO")
         btn_save.setStyleSheet("QPushButton { background-color: #2d7d2d; color: white; padding: 15px; font-size: 18px; font-weight: 900; border-radius: 8px; margin-top: 10px; } QPushButton:hover { background-color: #3da83d; }")
         
@@ -542,7 +572,6 @@ class CalendarioController:
             qu.prepare("UPDATE partidos SET goles_local=?, goles_visitante=?, jugado=1, id_arbitro=?, fecha=?, hora=? WHERE id=?")
             qu.addBindValue(w_local.spinbox.value()); qu.addBindValue(w_visit.spinbox.value())
             qu.addBindValue(id_arb); qu.addBindValue(f_str); qu.addBindValue(h_str); qu.addBindValue(id_partido)
-            
             if qu.exec():
                 dialog.accept()
                 self.cargar_calendario() 
@@ -558,15 +587,13 @@ class CalendarioController:
         dialog.exec()
 
     def gestionar_jugadores(self, id_local, id_visitante):
-        """Abre ventana para editar estadísticas. Devuelve (goles_local_sumados, goles_visit_sumados)"""
         dialog = QDialog(self.main_view)
         dialog.setWindowTitle("Estadísticas de Jugadores")
-        dialog.setFixedSize(800, 600) # Más grande
+        dialog.setFixedSize(800, 600)
         dialog.setStyleSheet("background-color: #252526; color: white;")
         layout = QVBoxLayout(dialog)
         
         tabs = QTabWidget()
-        # Estilo de pestañas más bonito
         tabs.setStyleSheet("""
             QTabWidget::pane { border: 1px solid #444; top: -1px; } 
             QTabBar::tab { background: #333; color: #aaa; padding: 10px 20px; font-size: 14px; border: 1px solid #444; border-bottom: none; border-top-left-radius: 4px; border-top-right-radius: 4px; } 
@@ -580,12 +607,9 @@ class CalendarioController:
         for eid, tipo_eq in equipos:
             page = QWidget()
             playout = QVBoxLayout(page)
-            
             tabla = QTableWidget()
             tabla.setColumnCount(4)
             tabla.setHorizontalHeaderLabels(["Nombre del Jugador", "Goles (+)", "Amarillas (+)", "Rojas (+)"])
-            
-            # Estilo de tabla mejorado
             tabla.setStyleSheet("""
                 QTableWidget { background-color: #2b2b2b; color: white; gridline-color: #444; font-size: 14px; selection-background-color: transparent; }
                 QHeaderView::section { background-color: #333; padding: 8px; font-weight: bold; border: 1px solid #444; }
@@ -595,35 +619,29 @@ class CalendarioController:
             tabla.horizontalHeader().setStretchLastSection(True)
             tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
             
-            # Cargar jugadores
             q = QSqlQuery(f"SELECT id, nombre, goles FROM participantes WHERE id_equipo={eid}")
             row = 0
             while q.next():
                 tabla.insertRow(row)
                 pid = q.value(0)
                 nombre = q.value(1)
-                
-                # Nombre
                 txt = f"{nombre} (Total: {q.value(2)}G)"
                 item_nom = QTableWidgetItem(txt)
                 item_nom.setFlags(Qt.ItemIsEnabled) 
                 item_nom.setData(Qt.UserRole, pid) 
                 tabla.setItem(row, 0, item_nom)
                 
-                # Spinboxes más bonitos y centrados
                 for col in range(1, 4):
                     container = QWidget()
                     lay = QHBoxLayout(container); lay.setContentsMargins(5, 2, 5, 2)
                     sp = QSpinBox()
                     sp.setStyleSheet("QSpinBox { background-color: #444; color: white; padding: 5px; font-weight: bold; border: 1px solid #555; }")
                     sp.setAlignment(Qt.AlignCenter)
-                    if col == 1: sp.setRange(0, 10) # Goles
-                    elif col == 2: sp.setRange(0, 2) # Amarillas
-                    elif col == 3: sp.setRange(0, 1) # Rojas
+                    if col == 1: sp.setRange(0, 10) 
+                    elif col == 2: sp.setRange(0, 2)
+                    elif col == 3: sp.setRange(0, 1)
                     lay.addWidget(sp)
                     tabla.setCellWidget(row, col, container)
-                
-                # Ajustar altura fila
                 tabla.setRowHeight(row, 50)
                 row += 1
             
@@ -637,7 +655,6 @@ class CalendarioController:
         btn_guardar = QPushButton("CONFIRMAR Y ACTUALIZAR ESTADÍSTICAS")
         btn_guardar.setStyleSheet("QPushButton { background-color: #2d7d2d; color: white; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 6px; } QPushButton:hover { background-color: #3da83d; }")
         
-        # Variables para devolver la suma de goles
         self.goles_local_sumados = 0
         self.goles_visit_sumados = 0
         
@@ -646,45 +663,31 @@ class CalendarioController:
                 changed = False
                 self.goles_local_sumados = 0
                 self.goles_visit_sumados = 0
-                
-                # Tabla 0 es Local, Tabla 1 es Visitante
                 for i, t in enumerate(tablas):
                     goles_equipo = 0
                     for r in range(t.rowCount()):
                         pid = t.item(r, 0).data(Qt.UserRole)
-                        
-                        # Acceder a los spinbox dentro de los widgets contenedores
                         w_gol = t.cellWidget(r, 1).findChild(QSpinBox)
                         w_ama = t.cellWidget(r, 2).findChild(QSpinBox)
                         w_roj = t.cellWidget(r, 3).findChild(QSpinBox)
-                        
                         gs = w_gol.value()
                         asum = w_ama.value()
                         rs = w_roj.value()
-                        
-                        if gs > 0:
-                            goles_equipo += gs
-                        
+                        if gs > 0: goles_equipo += gs
                         if gs > 0 or asum > 0 or rs > 0:
                             q = QSqlQuery()
                             q.prepare("UPDATE participantes SET goles=goles+?, tarjetas_amarillas=tarjetas_amarillas+?, tarjetas_rojas=tarjetas_rojas+? WHERE id=?")
-                            q.addBindValue(gs)
-                            q.addBindValue(asum)
-                            q.addBindValue(rs)
-                            q.addBindValue(pid)
+                            q.addBindValue(gs); q.addBindValue(asum); q.addBindValue(rs); q.addBindValue(pid)
                             q.exec()
                             changed = True
-                    
                     if i == 0: self.goles_local_sumados = goles_equipo
                     else: self.goles_visit_sumados = goles_equipo
-                            
                 if changed:
                     QMessageBox.information(dialog, "Éxito", "Estadísticas actualizadas.\nLos goles se han sumado al marcador.")
                     dialog.accept()
                 else:
                     QMessageBox.information(dialog, "Info", "No hubo cambios para guardar.")
                     dialog.reject()
-                    
             except Exception as e:
                 QMessageBox.critical(dialog, "Error", str(e))
                 
@@ -692,8 +695,6 @@ class CalendarioController:
         layout.addWidget(btn_guardar)
         
         resultado = dialog.exec()
-        
-        # Devolver los goles sumados si se aceptó
         if resultado == QDialog.Accepted:
             return self.goles_local_sumados, self.goles_visit_sumados
         else:
@@ -703,13 +704,9 @@ class CalendarioController:
         if QMessageBox.question(self.main_view, "Reiniciar", "¿Borrar TODO?", QMessageBox.Yes|QMessageBox.No) == QMessageBox.Yes:
             QSqlQuery().exec("DELETE FROM partidos")
             QSqlQuery().exec("UPDATE participantes SET goles=0, tarjetas_amarillas=0, tarjetas_rojas=0")
-            
             self.asegurar_columnas_bd()
             self.cargar_calendario()
-            
-            if self.main_controller:
-                self.main_controller.actualizar_clasificacion()
-                
+            if self.main_controller: self.main_controller.actualizar_clasificacion()
             QMessageBox.information(self.main_view, "Listo", "Temporada reiniciada.")
 
     def mostrar_clasificacion(self):
