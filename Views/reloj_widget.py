@@ -1,52 +1,77 @@
 from enum import Enum
-from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QTimer, QTime, Signal, Property, Slot
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QSizePolicy
+from PySide6.QtCore import QTimer, QTime, Signal, Property, Slot, Qt
 from Views.reloj_widget_ui import Ui_Form
 
-# [Requisito: Propiedad mode de tipo enumerado]
 class ModoReloj(Enum):
-    CLOCK = "clock"       # Muestra la hora actual del sistema
-    TIMER = "timer"       # Funciona como cronómetro de partido
+    CLOCK = "clock"
+    TIMER = "timer"
 
 class RelojDigital(QWidget):
-    # [Requisito: Eventos propios expuestos]
-    alarmTriggered = Signal(str)  # Se emite cuando salta la alarma
-    timerFinished = Signal()      # Se emite cuando el tiempo acaba
+    alarmTriggered = Signal(str)
+    timerFinished = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_Form()
         self.ui.setupUi(self)
 
-        # Variables internas (Gestión interna, sin acceso externo directo)
+        # =========================================================
+        # 🟢 COMPRESOR DE LAYOUT (Versión Definitiva)
+        # =========================================================
+        # 1. Intentamos obtener el layout principal del propio widget
+        layout = self.layout()
+        
+        # 2. Si no tiene layout directo, buscamos si hay uno horizontal dentro
+        if not layout:
+             children = self.findChildren(QHBoxLayout)
+             if children:
+                 layout = children[0]
+
+        if layout:
+            # 3. Eliminar el espaciado entre elementos y los márgenes
+            layout.setSpacing(0)
+            layout.setContentsMargins(0, 0, 0, 0)
+            # Alineamos al centro para que el bloque quede centrado
+            layout.setAlignment(Qt.AlignCenter)
+            
+            # 4. BUSCAR Y APLASTAR LOS SEPARADORES (Spacers)
+            # Iteramos por todos los elementos del layout
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+                # Si el elemento es un "muelle" (spacer)
+                if item.spacerItem():
+                    # Lo forzamos a tener tamaño 0 píxeles
+                    item.spacerItem().changeSize(0, 0, QSizePolicy.Fixed, QSizePolicy.Fixed)
+            
+            # 5. Forzar la actualización inmediata del layout
+            layout.invalidate()
+            layout.activate()
+        # =========================================================
+
+        # Variables internas
         self._mode = ModoReloj.CLOCK
         self._is24Hour = True
         
-        # Variables de Alarma y Tiempo
         self._alarmEnabled = False
-        self._alarmTime = QTime(0, 0)      # Hora para alarma en modo Reloj
+        self._alarmTime = QTime(0, 0)
         self._alarmMessage = "¡Aviso del Reloj!"
         
-        # Variables exclusivas del modo Temporizador/Cronómetro
         self._segundos_transcurridos = 0
-        self._limite_cronometro = 90 * 60  # Duración por defecto (90 min)
+        self._limite_cronometro = 90 * 60
 
-        # [Requisito: Gestión interna del paso del tiempo]
         self.timer_interno = QTimer(self)
         self.timer_interno.timeout.connect(self._procesar_logica)
-        self.timer_interno.setInterval(1000) # 1 segundo exacto
+        self.timer_interno.setInterval(1000)
 
-    # =========================================================
-    #  PROPIEDADES PÚBLICAS (Configuración desde la App)
-    # =========================================================
-
+    # --- PROPIEDADES ---
     @Property(ModoReloj)
     def mode(self): return self._mode
     @mode.setter
     def mode(self, value):
         if self._mode != value:
             self._mode = value
-            self.reset() # Reiniciar contadores al cambiar de contexto
+            self.reset()
             self._actualizar_pantalla_inmediata()
 
     @Property(bool)
@@ -71,15 +96,12 @@ class RelojDigital(QWidget):
     @alarmTime.setter
     def alarmTime(self, value): self._alarmTime = value
 
-    # Propiedad extra para configurar la duración del partido desde fuera
     @Property(int)
     def duracionPartido(self): return self._limite_cronometro
     @duracionPartido.setter
     def duracionPartido(self, segundos): self._limite_cronometro = segundos
 
-    # =========================================================
-    #  MÉTODOS PÚBLICOS (Control externo)
-    # =========================================================
+    # --- MÉTODOS PÚBLICOS ---
     @Slot()
     def start(self):
         if not self.timer_interno.isActive():
@@ -95,40 +117,29 @@ class RelojDigital(QWidget):
         self._segundos_transcurridos = 0
         self._actualizar_pantalla_inmediata()
 
-    # =========================================================
-    #  LÓGICA INTERNA (El "cerebro" del componente)
-    # =========================================================
+    # --- LÓGICA INTERNA ---
     def _procesar_logica(self):
-        """Se ejecuta cada segundo y decide qué hacer según el modo"""
-        
-        # --- CASO 1: MODO RELOJ DIGITAL (Hora del sistema) ---
         if self._mode == ModoReloj.CLOCK:
             hora_actual = QTime.currentTime()
             self._pintar_tiempo(hora_actual)
             
-            # Lógica de Alarma de Reloj (ej. "Avisar a las 14:00")
             if (self._alarmEnabled and 
                 hora_actual.hour() == self._alarmTime.hour() and 
                 hora_actual.minute() == self._alarmTime.minute() and 
                 hora_actual.second() == 0):
                 self.alarmTriggered.emit(self._alarmMessage)
 
-        # --- CASO 2: MODO CRONÓMETRO (Partido de Fútbol) ---
         elif self._mode == ModoReloj.TIMER:
             self._segundos_transcurridos += 1
-            
-            # Convertir segundos a QTime para pintar
             t = QTime(0, 0).addSecs(self._segundos_transcurridos)
             self._pintar_tiempo(t)
 
-            # Lógica de Alarma de Partido (ej. "Avisar al minuto 90")
             if self._alarmEnabled and self._segundos_transcurridos >= self._limite_cronometro:
-                self.alarmTriggered.emit(self._alarmMessage) # Reflejo en interfaz
+                self.alarmTriggered.emit(self._alarmMessage)
                 self.timerFinished.emit()
-                self.pause() # Parar automáticamente
+                self.pause()
 
     def _pintar_tiempo(self, tiempo: QTime):
-        """Actualiza la UI visualmente"""
         formato = "HH:mm:ss" if self._is24Hour else "hh:mm:ss"
         texto = tiempo.toString(formato)
         partes = texto.split(":")
@@ -138,7 +149,6 @@ class RelojDigital(QWidget):
             self.ui.label_segundos.setText(partes[2])
 
     def _actualizar_pantalla_inmediata(self):
-        """Refresca la pantalla sin esperar 1 segundo"""
         if self._mode == ModoReloj.CLOCK:
             self._pintar_tiempo(QTime.currentTime())
         else:

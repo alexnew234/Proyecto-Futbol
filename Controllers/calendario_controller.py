@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (
     QMessageBox, QTreeWidgetItem, QVBoxLayout, QHBoxLayout, 
     QPushButton, QLabel, QTableWidget, QTableWidgetItem, QSizePolicy,
     QSpinBox, QWidget, QDialog, QHeaderView, QAbstractItemView,
-    QAbstractSpinBox, QComboBox, QDateEdit, QTimeEdit, QMenu, QTabWidget
+    QAbstractSpinBox, QComboBox, QDateEdit, QTimeEdit, QMenu, QTabWidget,
+    QFrame
 )
 from PySide6.QtSql import QSqlQuery
 from PySide6.QtCore import Qt, QDate, QTime, QCoreApplication
@@ -11,7 +12,7 @@ from Views.reloj_widget import RelojDigital, ModoReloj
 import random
 
 # ============================================================================
-# 1. CLASES PERSONALIZADAS (DISEÑO MEJORADO)
+# 1. CLASES PERSONALIZADAS
 # ============================================================================
 
 class CustomSpinBox(QSpinBox):
@@ -44,7 +45,6 @@ def crear_spinbox_con_botones(label_text, valor_inicial=0):
     """Crea el conjunto de botones GIGANTES + y - separados"""
     contenedor = QWidget()
     layout = QHBoxLayout()
-    # Aumentamos mucho el espaciado entre botones
     layout.setContentsMargins(5, 5, 5, 5)
     layout.setSpacing(20) 
     
@@ -52,7 +52,6 @@ def crear_spinbox_con_botones(label_text, valor_inicial=0):
     spinbox.setValue(valor_inicial)
     spinbox.setMinimum(0)
     
-    # Estilo para botones gigantes y claros
     estilo_btn = """
         QPushButton {
             background-color: #B71C1C;
@@ -74,14 +73,12 @@ def crear_spinbox_con_botones(label_text, valor_inicial=0):
         }
     """
     
-    # Botón Menos Gigante
     btn_menos = QPushButton("-")
     btn_menos.setFixedSize(60, 60)
     btn_menos.setCursor(Qt.CursorShape.PointingHandCursor)
     btn_menos.setStyleSheet(estilo_btn)
     btn_menos.clicked.connect(spinbox.stepDown)
     
-    # Botón Más Gigante
     btn_mas = QPushButton("+")
     btn_mas.setFixedSize(60, 60)
     btn_mas.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -89,7 +86,7 @@ def crear_spinbox_con_botones(label_text, valor_inicial=0):
     btn_mas.clicked.connect(spinbox.stepUp)
     
     layout.addWidget(btn_menos)
-    layout.addWidget(spinbox) # El spinbox se expande
+    layout.addWidget(spinbox)
     layout.addWidget(btn_mas)
     
     contenedor.setLayout(layout)
@@ -106,7 +103,7 @@ class CalendarioController:
     def __init__(self, main_window, main_controller=None):
         self.main_view = main_window
         self.main_controller = main_controller
-        self.view = main_window # Referencia extra por compatibilidad
+        self.view = main_window 
         
         self.page_calendario = self.main_view.ui.page_calendario
         self.tree_widget = self.main_view.ui.treeWidget_partidos
@@ -126,21 +123,20 @@ class CalendarioController:
         self.cargar_calendario()
     
     def asegurar_columnas_bd(self):
-        """Asegura que existen las columnas nuevas en la BD"""
         try:
             QSqlQuery().exec("ALTER TABLE partidos ADD COLUMN fecha TEXT")
-        except:
-            pass
+        except: pass
         try:
             QSqlQuery().exec("ALTER TABLE partidos ADD COLUMN id_arbitro INTEGER")
-        except:
-            pass
+        except: pass
 
     def setup_ui(self):
+        """Configura la barra superior de botones Y EL RELOJ A LA DERECHA"""
         layout_main = self.page_calendario.layout()
         layout_botones = QHBoxLayout()
         layout_botones.setSpacing(10)
         
+        # --- 1. BOTONES ---
         self.btn_generar_ronda = QPushButton("Generar Siguiente Ronda")
         self.btn_generar_ronda.setStyleSheet("""
             QPushButton {
@@ -180,10 +176,35 @@ class CalendarioController:
         layout_botones.addWidget(self.btn_generar_ronda)
         layout_botones.addWidget(self.btn_clasificacion)
         layout_botones.addWidget(self.btn_nueva_temporada)
-        layout_botones.addStretch()
         
+        # --- 2. MUELLE (EMPUJA EL RELOJ A LA DERECHA) ---
+        layout_botones.addStretch() 
+        
+        # --- 3. RELOJ COMPACTO (Instanciado ANTES de añadirlo) ---
+        self.reloj_header = RelojDigital()
+        self.reloj_header.mode = ModoReloj.CLOCK
+        self.reloj_header.is24Hour = True
+        
+        # TAMAÑO FIJO PARA JUNTAR LOS NÚMEROS
+        self.reloj_header.setFixedSize(150, 40)
+        
+        self.reloj_header.setStyleSheet("""
+            QLabel {
+                color: #00ff00; 
+                font-weight: bold; 
+                font-size: 20px; 
+                background: transparent;
+                padding: 0px; margin: 0px;
+            }
+        """)
+        self.reloj_header.start()
+        
+        layout_botones.addWidget(self.reloj_header)
+        
+        # --- 4. INSERTAR BARRA EN PÁGINA ---
         layout_main.insertLayout(0, layout_botones)
         
+        # Resto de elementos...
         self.lbl_ronda_actual = QLabel("Ronda actual: Ninguna generada")
         self.lbl_ronda_actual.setStyleSheet("color: #888; font-style: italic; margin-top: 5px;")
         layout_main.insertWidget(1, self.lbl_ronda_actual)
@@ -199,7 +220,7 @@ class CalendarioController:
     
     def init_connections(self):
         self.btn_generar_ronda.clicked.connect(self.generar_siguiente_ronda)
-        self.btn_clasificacion.clicked.connect(self.mostrar_clasificacion)
+        self.btn_clasificacion.clicked.connect(self.mostrar_clasificacion) # ¡Aquí estaba el error antes!
         self.btn_nueva_temporada.clicked.connect(self.nueva_temporada)
         self.btn_volver.clicked.connect(self.volver_calendario)
         self.tree_widget.itemDoubleClicked.connect(self.editar_partido)
@@ -413,7 +434,7 @@ class CalendarioController:
             QMessageBox.warning(self.main_view, "Error", "Fallo al generar.")
 
     def editar_partido(self, item, column):
-        """Abre ventana flotante de edición con RELOJ INTEGRADO"""
+        """Abre ventana flotante de edición con RELOJ A LA DERECHA"""
         if item.parent() is None: return
         
         id_partido = item.data(0, Qt.ItemDataRole.UserRole)
@@ -438,71 +459,27 @@ class CalendarioController:
 
         dialog = QDialog(self.main_view)
         dialog.setWindowTitle(f"{local} vs {visit}")
-        dialog.setFixedSize(500, 800) 
+        dialog.setFixedSize(900, 500) 
         dialog.setStyleSheet("background-color: #252526; color: white;")
         
-        layout = QVBoxLayout()
-        layout.setSpacing(15)
-
-        # =========================================================
-        # RELOJ DIGITAL - INICIO AUTOMÁTICO Y REINICIO
-        # =========================================================
+        main_layout = QVBoxLayout(dialog)
+        content_layout = QHBoxLayout()
+        form_layout = QVBoxLayout()
+        form_layout.setContentsMargins(0, 0, 10, 0)
         
-        self.reloj_partido = RelojDigital()
-        # CONFIGURACIÓN PARA CONTEXTO DE PARTIDO (Modo Timer)
-        self.reloj_partido.mode = ModoReloj.TIMER
-        self.reloj_partido.duracionPartido = 90 * 60  # Duración configurable
-        self.reloj_partido.alarmMessage = "¡FIN DEL TIEMPO REGLAMENTARIO!" 
-        self.reloj_partido.alarmEnabled = True
-        
-        self.reloj_partido.alarmTriggered.connect(lambda msg: QMessageBox.information(dialog, "Tiempo", msg))        
-        layout.addWidget(QLabel("⏱ CRONÓMETRO DEL PARTIDO", font=QFont("Arial", 10, QFont.Bold)))
-        layout.addWidget(self.reloj_partido)
-        
-        # --- BOTONES DE CONTROL ---
-        layout_reloj_btns = QHBoxLayout()
-        
-        btn_iniciar_reloj = QPushButton("▶ Iniciar")
-        btn_iniciar_reloj.clicked.connect(self.reloj_partido.start)
-        btn_iniciar_reloj.setStyleSheet("background-color: #2d7d2d; color: white;")
-        
-        btn_pausar_reloj = QPushButton("⏸ Pausar")
-        btn_pausar_reloj.clicked.connect(self.reloj_partido.pause)
-        btn_pausar_reloj.setStyleSheet("background-color: #d8a600; color: black;")
-        
-        # --- BOTÓN REINICIAR NUEVO ---
-        btn_reiniciar_reloj = QPushButton("↺ Reiniciar")
-        btn_reiniciar_reloj.clicked.connect(self.reloj_partido.reset)
-        btn_reiniciar_reloj.setStyleSheet("background-color: #7d2d2d; color: white;")
-        
-        layout_reloj_btns.addWidget(btn_iniciar_reloj)
-        layout_reloj_btns.addWidget(btn_pausar_reloj)
-        layout_reloj_btns.addWidget(btn_reiniciar_reloj) # Añadido
-        
-        layout.addLayout(layout_reloj_btns)
-        
-        # --- AUTO-INICIO AL ABRIR ---
-        self.reloj_partido.start()
-        
-        # Separador visual
-        linea_reloj = QWidget()
-        linea_reloj.setFixedHeight(2)
-        linea_reloj.setStyleSheet("background-color: #444; margin: 10px 0;")
-        layout.addWidget(linea_reloj)
-        # =========================================================
-
-        layout.addWidget(QLabel(f"Goles {local}:", font=QFont("Arial", 12, QFont.Bold)))
+        # Marcador
+        form_layout.addWidget(QLabel(f"Goles {local}:", font=QFont("Arial", 12, QFont.Bold)))
         w_local = crear_spinbox_con_botones(local, gl)
-        layout.addWidget(w_local)
+        form_layout.addWidget(w_local)
 
-        layout.addWidget(QLabel(f"Goles {visit}:", font=QFont("Arial", 12, QFont.Bold)))
+        form_layout.addWidget(QLabel(f"Goles {visit}:", font=QFont("Arial", 12, QFont.Bold)))
         w_visit = crear_spinbox_con_botones(visit, gv)
-        layout.addWidget(w_visit)
+        form_layout.addWidget(w_visit)
 
         linea = QWidget()
         linea.setFixedHeight(2)
         linea.setStyleSheet("background-color: #444; margin: 10px 0;")
-        layout.addWidget(linea)
+        form_layout.addWidget(linea)
 
         lh = QHBoxLayout()
         v1 = QVBoxLayout()
@@ -511,10 +488,8 @@ class CalendarioController:
         date_edit.setCalendarPopup(True)
         date_edit.setStyleSheet("QDateEdit { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; }")
         date_edit.setMinimumDate(QDate.currentDate())
-        if fecha_bd:
-            date_edit.setDate(QDate.fromString(fecha_bd, "yyyy-MM-dd"))
-        else:
-            date_edit.setDate(QDate.currentDate())
+        if fecha_bd: date_edit.setDate(QDate.fromString(fecha_bd, "yyyy-MM-dd"))
+        else: date_edit.setDate(QDate.currentDate())
         v1.addWidget(date_edit)
         lh.addLayout(v1)
 
@@ -522,34 +497,28 @@ class CalendarioController:
         v2.addWidget(QLabel("Hora:"))
         combo_hora = QComboBox()
         combo_hora.setStyleSheet("QComboBox { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; } QComboBox::drop-down { border: none; }")
-        for h in range(9, 24):
-            combo_hora.addItems([f"{h:02d}:00", f"{h:02d}:30"])
-        if hora_bd:
-            combo_hora.setCurrentText(hora_bd)
-        else:
-            combo_hora.setCurrentText("21:00")
+        for h in range(9, 24): combo_hora.addItems([f"{h:02d}:00", f"{h:02d}:30"])
+        if hora_bd: combo_hora.setCurrentText(hora_bd)
+        else: combo_hora.setCurrentText("21:00")
         v2.addWidget(combo_hora)
         lh.addLayout(v2)
-        layout.addLayout(lh)
+        form_layout.addLayout(lh)
 
-        layout.addWidget(QLabel("Árbitro asignado:"))
+        form_layout.addWidget(QLabel("Árbitro asignado:"))
         combo_arb = QComboBox()
         combo_arb.setStyleSheet("QComboBox { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; }")
         combo_arb.addItem("Sin asignar", None)
-        
         qa = QSqlQuery("SELECT id, nombre FROM participantes WHERE tipo_participante LIKE '%Árbitro%' OR tipo_participante = 'Ambos'")
-        idx_sel = 0
-        i = 1
+        idx_sel = 0; i = 1
         while qa.next():
             combo_arb.addItem(qa.value(1), qa.value(0))
-            if id_arb_actual and qa.value(0) == id_arb_actual:
-                idx_sel = i
+            if id_arb_actual and qa.value(0) == id_arb_actual: idx_sel = i
             i += 1
         combo_arb.setCurrentIndex(idx_sel)
-        layout.addWidget(combo_arb)
+        form_layout.addWidget(combo_arb)
 
-        btn_players = QPushButton("Gestionar Goles y Tarjetas (Jugadores)")
-        btn_players.setStyleSheet("QPushButton { background-color: #1a5d7d; color: white; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; } QPushButton:hover { background-color: #2a7d9d; }")
+        btn_players = QPushButton("Gestionar Goles y Tarjetas")
+        btn_players.setStyleSheet("QPushButton { background-color: #1a5d7d; color: white; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 10px; } QPushButton:hover { background-color: #2a7d9d; }")
         
         def gestionar_y_sumar():
             goles_l_antes = w_local.spinbox.value()
@@ -559,7 +528,50 @@ class CalendarioController:
             w_visit.spinbox.setValue(goles_v_antes + goles_v_nuevos)
 
         btn_players.clicked.connect(gestionar_y_sumar)
-        layout.addWidget(btn_players)
+        form_layout.addWidget(btn_players)
+        
+        clock_layout = QVBoxLayout()
+        clock_layout.setAlignment(Qt.AlignTop)
+        
+        lbl_reloj = QLabel("⏱ CRONÓMETRO", font=QFont("Arial", 14, QFont.Bold))
+        lbl_reloj.setAlignment(Qt.AlignCenter)
+        lbl_reloj.setStyleSheet("margin-bottom: 10px; color: #ddd;")
+        clock_layout.addWidget(lbl_reloj)
+        
+        self.reloj_partido = RelojDigital()
+        self.reloj_partido.mode = ModoReloj.TIMER
+        self.reloj_partido.is24Hour = True
+        self.reloj_partido.alarmMessage = QCoreApplication.translate("Calendario", "¡Tiempo de partido finalizado!", None)
+        self.reloj_partido._alarmEnabled = True
+        self.reloj_partido.alarmTriggered.connect(lambda msg: QMessageBox.information(dialog, "Árbitro", msg))
+        clock_layout.addWidget(self.reloj_partido)
+        
+        btn_iniciar = QPushButton("▶ Iniciar")
+        btn_iniciar.clicked.connect(self.reloj_partido.start)
+        btn_iniciar.setStyleSheet("background-color: #2d7d2d; color: white; padding: 10px; font-size: 14px; border-radius: 5px;")
+        
+        btn_pausar = QPushButton("⏸ Pausar")
+        btn_pausar.clicked.connect(self.reloj_partido.pause)
+        btn_pausar.setStyleSheet("background-color: #d8a600; color: black; padding: 10px; font-size: 14px; border-radius: 5px;")
+        
+        btn_reiniciar = QPushButton("↺ Reiniciar")
+        btn_reiniciar.clicked.connect(self.reloj_partido.reset)
+        btn_reiniciar.setStyleSheet("background-color: #7d2d2d; color: white; padding: 10px; font-size: 14px; border-radius: 5px;")
+        
+        clock_layout.addWidget(btn_iniciar)
+        clock_layout.addWidget(btn_pausar)
+        clock_layout.addWidget(btn_reiniciar)
+        clock_layout.addStretch() 
+        
+        self.reloj_partido.start()
+        
+        content_layout.addLayout(form_layout, 60)
+        line_v = QFrame()
+        line_v.setFrameShape(QFrame.VLine)
+        line_v.setStyleSheet("color: #555;")
+        content_layout.addWidget(line_v)
+        content_layout.addLayout(clock_layout, 40)
+        main_layout.addLayout(content_layout)
 
         btn_save = QPushButton("GUARDAR RESULTADO DEL PARTIDO")
         btn_save.setStyleSheet("QPushButton { background-color: #2d7d2d; color: white; padding: 15px; font-size: 18px; font-weight: 900; border-radius: 8px; margin-top: 10px; } QPushButton:hover { background-color: #3da83d; }")
@@ -581,9 +593,9 @@ class CalendarioController:
                 QMessageBox.critical(dialog, "Error", qu.lastError().text())
 
         btn_save.clicked.connect(guardar)
-        layout.addWidget(btn_save)
+        main_layout.addWidget(btn_save)
         
-        dialog.setLayout(layout)
+        dialog.setLayout(main_layout)
         dialog.exec()
 
     def gestionar_jugadores(self, id_local, id_visitante):
@@ -709,10 +721,16 @@ class CalendarioController:
             if self.main_controller: self.main_controller.actualizar_clasificacion()
             QMessageBox.information(self.main_view, "Listo", "Temporada reiniciada.")
 
+    # --- FUNCIONES RESTAURADAS QUE FALTABAN ---
     def mostrar_clasificacion(self):
+        """Muestra la página de clasificación (índice 2 del StackedWidget)"""
         self.main_view.ui.stackedWidget.setCurrentIndex(2)
+        # Opcional: refrescar la tabla si es necesario
+        if self.main_controller:
+            self.main_controller.actualizar_clasificacion()
         
     def volver_calendario(self):
+        """Vuelve a mostrar la lista de partidos y oculta la clasificación"""
         self.tree_widget.setVisible(True)
         self.tabla_clasificacion.setVisible(False)
         self.btn_volver.setVisible(False)
