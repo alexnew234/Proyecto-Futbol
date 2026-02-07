@@ -4,10 +4,10 @@ import os
 from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QFileDialog, QTableWidget, 
     QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel, QVBoxLayout,
-    QToolBar, QMenuBar, QSizePolicy
+    QToolBar, QMenuBar, QSizePolicy, QApplication, QHBoxLayout, QWidget
 )
 from PySide6.QtGui import QAction, QColor, QBrush, QPixmap
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTranslator, QCoreApplication
 from PySide6.QtSql import QSqlQuery
 
 from Controllers.equipos_controller import EquiposController
@@ -23,10 +23,19 @@ class MainController:
     def __init__(self, main_window):
         self.view = main_window
         self.ui = main_window.ui # Acceso directo a la UI
+        self.app = QApplication.instance() # Referencia a la app para traducciones
         
+        # --- 1. SISTEMA DE TRADUCCIONES ---
+        self.translator = QTranslator()
+        # Carpeta base para buscar traducciones
+        if hasattr(sys, '_MEIPASS'):
+            self.translation_path = os.path.join(sys._MEIPASS, "translations")
+        else:
+            self.translation_path = os.path.join(os.getcwd(), "translations")
+        # ----------------------------------
+
         # --- ARREGLO VISUAL PARA LAS CASILLAS (CHECKBOX) ---
-        # Esto hace que cuando marques una opción, el cuadrado se ponga ROJO
-        # para que se vea claramente que está activado sobre el fondo oscuro.
+        # Añadimos la imagen del TIC (SVG) para que se vea blanco sobre fondo rojo
         self.view.setStyleSheet("""
             QCheckBox {
                 color: white;
@@ -36,14 +45,15 @@ class MainController:
             QCheckBox::indicator {
                 width: 18px;
                 height: 18px;
-                border: 2px solid #999; /* Borde gris visible */
+                border: 2px solid #999;
                 background-color: transparent;
                 border-radius: 3px;
             }
-            /* ESTADO MARCADO (CHECKED): Fondo Rojo y Borde Blanco */
+            /* ESTADO MARCADO (CHECKED): Fondo Rojo, Borde Blanco y TIC BLANCO */
             QCheckBox::indicator:checked {
                 background-color: #B71C1C; 
                 border: 2px solid white;
+                image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>');
             }
             QCheckBox::indicator:unchecked:hover {
                 border: 2px solid #B71C1C;
@@ -62,6 +72,39 @@ class MainController:
         self.reloj_config_view = RelojConfigView()
         self.ui.stackedWidget.addWidget(self.reloj_config_view)
         self.index_reloj_config = self.ui.stackedWidget.count() - 1
+        
+        # --- AÑADIR BOTONES DE IDIOMA EN LA PESTAÑA DE CONFIGURACIÓN ---
+        # Lo hacemos aquí por código para no tener que editar el archivo de la Vista
+        try:
+            layout_config = self.reloj_config_view.layout()
+            if not layout_config:
+                layout_config = QVBoxLayout(self.reloj_config_view)
+                self.reloj_config_view.setLayout(layout_config)
+            
+            # Crear contenedor para los botones
+            lbl_idioma = QLabel(QCoreApplication.translate("MainController", "Idioma / Language:"))
+            lbl_idioma.setStyleSheet("color: white; font-weight: bold; margin-top: 10px;")
+            
+            layout_idiomas = QHBoxLayout()
+            self.btn_es = QPushButton("🇪🇸 Español")
+            self.btn_en = QPushButton("🇺🇸 English")
+            
+            estilo_btn = "padding: 8px; font-weight: bold; border-radius: 4px; background-color: #444; color: white;"
+            self.btn_es.setStyleSheet(estilo_btn)
+            self.btn_en.setStyleSheet(estilo_btn)
+            
+            layout_idiomas.addWidget(self.btn_es)
+            layout_idiomas.addWidget(self.btn_en)
+            
+            layout_config.addWidget(lbl_idioma)
+            layout_config.addLayout(layout_idiomas)
+            
+            # Conectar señales
+            self.btn_es.clicked.connect(lambda: self.cambiar_idioma("es"))
+            self.btn_en.clicked.connect(lambda: self.cambiar_idioma("en"))
+            
+        except Exception as e:
+            print(f"Error al inyectar botones de idioma: {e}")
         # ----------------------------------------------------
 
         # 2. Conexiones
@@ -80,11 +123,44 @@ class MainController:
         # 4. CONFIGURACIÓN DEL RELOJ EN EL DASHBOARD
         self.setup_reloj_dashboard()
         
-        # 5. AÑADIR BOTÓN A LA BARRA SUPERIOR (MÉTODO DETECTIVE)
+        # 5. AÑADIR BOTÓN A LA BARRA SUPERIOR (MÉTODO CLÁSICO - SIN ROMPER NADA)
         self.setup_toolbar_extra_button()
         
         # 6. ASEGURAR RESPONSIVIDAD Y COLOR ROJO SÓLIDO
         self.ensure_toolbar_responsive()
+
+    # =========================================================================
+    #  MÉTODOS DE INTERNACIONALIZACIÓN (TRADUCCIÓN)
+    # =========================================================================
+    def cambiar_idioma(self, codigo_idioma):
+        """Carga el archivo .qm y actualiza toda la interfaz"""
+        if codigo_idioma == "es":
+            self.app.removeTranslator(self.translator)
+        else:
+            archivo = f"app_{codigo_idioma}.qm"
+            ruta = os.path.join(self.translation_path, archivo)
+            if self.translator.load(ruta):
+                self.app.installTranslator(self.translator)
+                print(f"Idioma cambiado a: {codigo_idioma}")
+            else:
+                print(f"No se encontró traducción: {ruta}")
+        
+        self.retraducir_ui()
+
+    def retraducir_ui(self):
+        """Refresca los textos visibles"""
+        # 1. Refrescar UI cargada de Designer
+        self.ui.retranslateUi(self.view)
+        
+        # 2. Refrescar textos creados por código
+        if hasattr(self, 'act_config_reloj'):
+            self.act_config_reloj.setText(QCoreApplication.translate("MainController", "⚙️ Config. Reloj"))
+            
+        # 3. Refrescar tabla de clasificación si está visible
+        if self.ui.stackedWidget.currentIndex() == 2:
+            self.actualizar_clasificacion()
+
+    # =========================================================================
 
     def ensure_toolbar_responsive(self):
         """
@@ -139,8 +215,9 @@ class MainController:
         el de Configuración en el mismo contenedor.
         """
         
-        # 1. Crear la Acción
-        self.act_config_reloj = QAction("⚙️ Config. Reloj", self.view)
+        # 1. Crear la Acción (TRADUCIBLE)
+        texto_boton = QCoreApplication.translate("MainController", "⚙️ Config. Reloj")
+        self.act_config_reloj = QAction(texto_boton, self.view)
         self.act_config_reloj.triggered.connect(lambda: self.cambiar_pagina(self.index_reloj_config))
         
         # 2. Identificar acciones que SABEMOS que están en esa barra
@@ -286,7 +363,7 @@ class MainController:
             QMessageBox.critical(self.view, "Error", f"Error al guardar: {e}")
 
     def mostrar_creditos(self):
-        titulo = "Acerca de - Gestor de Torneos"
+        titulo = QCoreApplication.translate("MainController", "Acerca de - Gestor de Torneos")
         texto = """
         <h3>⚽ Gestor de Torneos de Fútbol</h3>
         <p>Aplicación para la gestión integral de competiciones deportivas.</p>
@@ -300,7 +377,7 @@ class MainController:
         QMessageBox.about(self.view, titulo, texto)
 
     def mostrar_ayuda(self):
-        titulo = "Ayuda - Guía Rápida"
+        titulo = QCoreApplication.translate("MainController", "Ayuda - Guía Rápida")
         texto = """
         <h3>📖 Cómo utilizar el Gestor</h3>
         <ol>
@@ -380,7 +457,22 @@ class MainController:
             if scroll_area:
                 scroll_area.setWidget(tabla)
         
-        columnas = ["Pos", "Equipo", "PJ", "G", "E", "P", "GF", "GC", "DG", "Pts"]
+        # --- CABECERAS TRADUCIBLES ---
+        # Usamos QCoreApplication.translate para que se puedan traducir al cambiar idioma
+        t_pos = QCoreApplication.translate("MainController", "Pos")
+        t_equipo = QCoreApplication.translate("MainController", "Equipo")
+        t_pj = QCoreApplication.translate("MainController", "PJ")
+        t_g = QCoreApplication.translate("MainController", "G")
+        t_e = QCoreApplication.translate("MainController", "E")
+        t_p = QCoreApplication.translate("MainController", "P")
+        t_gf = QCoreApplication.translate("MainController", "GF")
+        t_gc = QCoreApplication.translate("MainController", "GC")
+        t_dg = QCoreApplication.translate("MainController", "DG")
+        t_pts = QCoreApplication.translate("MainController", "Pts")
+
+        columnas = [t_pos, t_equipo, t_pj, t_g, t_e, t_p, t_gf, t_gc, t_dg, t_pts]
+        # -----------------------------
+
         tabla.setColumnCount(len(columnas))
         tabla.setHorizontalHeaderLabels(columnas)
         tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
