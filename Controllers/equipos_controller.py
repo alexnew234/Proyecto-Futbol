@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QTableWidgetItem, QMessageBox
 from PySide6.QtSql import QSqlQueryModel, QSqlQuery
+from PySide6.QtCore import QCoreApplication
 from Controllers.universal_controller import UniversalController 
 
 class EquiposController:
@@ -40,7 +41,11 @@ class EquiposController:
     def abrir_formulario_editar(self):
         index = self.main_view.ui.list_Teams.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self.main_view, "Aviso", "Selecciona un equipo de la lista primero")
+            QMessageBox.warning(
+                self.main_view,
+                QCoreApplication.translate("EquiposController", "Aviso"),
+                QCoreApplication.translate("EquiposController", "Selecciona un equipo de la lista primero")
+            )
             return
             
         nombre_seleccionado = index.data()
@@ -57,20 +62,31 @@ class EquiposController:
                 self.main_view, "EQUIPO", self.cargar_lista_equipos, datos_editar=datos
             )
         else:
-            QMessageBox.critical(self.main_view, "Error", "No se pudieron leer los datos")
+            QMessageBox.critical(
+                self.main_view,
+                QCoreApplication.translate("EquiposController", "Error"),
+                QCoreApplication.translate("EquiposController", "No se pudieron leer los datos")
+            )
 
     def eliminar_equipo(self):
         index = self.main_view.ui.list_Teams.currentIndex()
         if not index.isValid():
-            QMessageBox.warning(self.main_view, "Aviso", "Por favor, selecciona un equipo para eliminar.")
+            QMessageBox.warning(
+                self.main_view,
+                QCoreApplication.translate("EquiposController", "Aviso"),
+                QCoreApplication.translate("EquiposController", "Por favor, selecciona un equipo para eliminar.")
+            )
             return
 
         nombre_equipo = index.data()
 
         confirmacion = QMessageBox.question(
-            self.main_view, 
-            "Confirmar borrado", 
-            f"¿Estás seguro de que quieres eliminar el equipo '{nombre_equipo}'?\nSe borrarán AUTOMÁTICAMENTE todos sus jugadores.",
+            self.main_view,
+            QCoreApplication.translate("EquiposController", "Confirmar borrado"),
+            QCoreApplication.translate(
+                "EquiposController",
+                "¿Estás seguro de que quieres eliminar el equipo '{nombre}'?\nSe borrarán AUTOMÁTICAMENTE todos sus jugadores."
+            ).format(nombre=nombre_equipo),
             QMessageBox.Yes | QMessageBox.No
         )
 
@@ -95,7 +111,11 @@ class EquiposController:
                 query_borrar_equipo.addBindValue(id_equipo)
                 
                 if query_borrar_equipo.exec():
-                    QMessageBox.information(self.main_view, "Éxito", "Equipo eliminado.")
+                    QMessageBox.information(
+                        self.main_view,
+                        QCoreApplication.translate("EquiposController", "Éxito"),
+                        QCoreApplication.translate("EquiposController", "Equipo eliminado.")
+                    )
                     self.main_view.ui.tableWidget.setRowCount(0)
                     self.cargar_lista_equipos()
                     
@@ -106,9 +126,17 @@ class EquiposController:
                         self.funcion_refresco_externa() 
                         
                 else:
-                    QMessageBox.critical(self.main_view, "Error", "Falló el borrado del equipo.")
+                    QMessageBox.critical(
+                        self.main_view,
+                        QCoreApplication.translate("EquiposController", "Error"),
+                        QCoreApplication.translate("EquiposController", "Falló el borrado del equipo.")
+                    )
             else:
-                 QMessageBox.critical(self.main_view, "Error", "No se encontró el ID del equipo.")
+                 QMessageBox.critical(
+                     self.main_view,
+                     QCoreApplication.translate("EquiposController", "Error"),
+                     QCoreApplication.translate("EquiposController", "No se encontró el ID del equipo.")
+                 )
 
     def cargar_lista_equipos(self):
         self.modelo_lista.setQuery("SELECT nombre FROM equipos")
@@ -144,7 +172,8 @@ class EquiposController:
             while query.next():
                 tabla.insertRow(fila)
                 tabla.setItem(fila, 0, QTableWidgetItem(str(query.value(0))))  # Nombre
-                tabla.setItem(fila, 1, QTableWidgetItem(str(query.value(1))))  # Posición
+                posicion = str(query.value(1))
+                tabla.setItem(fila, 1, QTableWidgetItem(self.traducir_posicion(posicion)))  # Posición
                 tabla.setItem(fila, 2, QTableWidgetItem(str(query.value(2))))  # Curso
                 tabla.setItem(fila, 3, QTableWidgetItem(str(query.value(3))))  # Color Camiseta
                 
@@ -183,7 +212,11 @@ class EquiposController:
             pixmap = QPixmap(ruta_imagen)
             
             if pixmap.isNull():
-                tabla.setItem(fila, columna, QTableWidgetItem("Sin imagen"))
+                tabla.setItem(
+                    fila,
+                    columna,
+                    QTableWidgetItem(QCoreApplication.translate("EquiposController", "Sin imagen"))
+                )
                 return
             
             # Escalar la imagen a un tamaño apropiado
@@ -197,4 +230,23 @@ class EquiposController:
             # Insertar el label en la celda
             tabla.setCellWidget(fila, columna, label)
         except Exception as e:
-            tabla.setItem(fila, columna, QTableWidgetItem(f"Error: {str(e)}"))
+            tabla.setItem(
+                fila,
+                columna,
+                QTableWidgetItem(
+                    QCoreApplication.translate("EquiposController", "Error: {error}").format(error=str(e))
+                )
+            )
+
+    def traducir_posicion(self, posicion):
+        """Traduce posiciones almacenadas en BD (es) para mostrar en el idioma actual."""
+        if not posicion:
+            return ""
+        mapa = {
+            "Portero": QCoreApplication.translate("FormUniversalView", "Portero"),
+            "Defensa": QCoreApplication.translate("FormUniversalView", "Defensa"),
+            "Centrocampista": QCoreApplication.translate("FormUniversalView", "Centrocampista"),
+            "Delantero": QCoreApplication.translate("FormUniversalView", "Delantero"),
+            "N/A": QCoreApplication.translate("FormUniversalView", "N/A")
+        }
+        return mapa.get(posicion, posicion)

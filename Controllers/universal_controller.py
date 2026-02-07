@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QMessageBox, QFileDialog
+from PySide6.QtCore import QCoreApplication
 from PySide6.QtSql import QSqlQuery
 from Views.form_universal import FormUniversalView
 
@@ -36,8 +37,9 @@ class UniversalController:
         """ Rellena los campos con la info que le pasamos """
         _, nombre, curso, color, ruta = self.datos_editar
         
-        self.view.lbl_titulo.setText("Editar Equipo")
-        self.view.btn_guardar.setText("Actualizar Datos")
+        self.view._title_key = "Editar Equipo"
+        self.view._save_key = "Actualizar Datos"
+        self.view.retranslate_ui()
         
         self.view.txt_eq_nombre.setText(nombre)
         self.view.txt_eq_curso.setText(curso)
@@ -45,7 +47,8 @@ class UniversalController:
         self.view.lbl_ruta_imagen.setText(ruta)
         
         if ruta:
-             self.view.btn_imagen.setText(f"Imagen actual: ...{ruta[-15:]}")
+             pref = QCoreApplication.translate("UniversalController", "Imagen actual")
+             self.view.btn_imagen.setText(f"{pref}: ...{ruta[-15:]}")
     
     def rellenar_datos_participante(self):
         """Rellena los campos del formulario con los datos del participante a editar"""
@@ -58,8 +61,9 @@ class UniversalController:
         query.addBindValue(self.id_editar)
         
         if query.exec() and query.next():
-            self.view.lbl_titulo.setText("Editar Participante")
-            self.view.btn_guardar.setText("Actualizar Participante")
+            self.view._title_key = "Editar Participante"
+            self.view._save_key = "Actualizar Participante"
+            self.view.retranslate_ui()
             
             self.view.txt_part_nombre.setText(query.value(0) or "")
             
@@ -74,13 +78,13 @@ class UniversalController:
             
             # Combobox tipo
             tipo = query.value(3) or ""
-            idx = self.view.combo_tipo.findText(tipo)
+            idx = self.view.combo_tipo.findData(tipo)
             if idx >= 0:
                 self.view.combo_tipo.setCurrentIndex(idx)
             
             # Combobox posición
             posicion = query.value(4) or ""
-            idx = self.view.combo_posicion.findText(posicion)
+            idx = self.view.combo_posicion.findData(posicion)
             if idx >= 0:
                 self.view.combo_posicion.setCurrentIndex(idx)
             
@@ -96,10 +100,16 @@ class UniversalController:
                 self.view.combo_equipo_asignado.setCurrentIndex(idx)
 
     def seleccionar_imagen(self):
-        archivo, _ = QFileDialog.getOpenFileName(self.view, "Seleccionar Escudo", "", "Imagenes (*.png *.jpg)")
+        archivo, _ = QFileDialog.getOpenFileName(
+            self.view,
+            QCoreApplication.translate("UniversalController", "Seleccionar Escudo"),
+            "",
+            QCoreApplication.translate("UniversalController", "Imágenes (*.png *.jpg)")
+        )
         if archivo:
             self.view.lbl_ruta_imagen.setText(archivo)
-            self.view.btn_imagen.setText(f"Imagen: ...{archivo[-15:]}")
+            pref = QCoreApplication.translate("UniversalController", "Imagen")
+            self.view.btn_imagen.setText(f"{pref}: ...{archivo[-15:]}")
             self.view.btn_imagen.setStyleSheet("border: 2px solid green; color: green;")
 
     def cargar_equipos_en_combo(self):
@@ -123,12 +133,20 @@ class UniversalController:
 
         # --- VALIDACIONES ---
         if not nombre:
-            QMessageBox.warning(self.view, "Error", "El nombre no puede estar vacío.")
+            QMessageBox.warning(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Error"),
+                QCoreApplication.translate("UniversalController", "El nombre no puede estar vacío.")
+            )
             return
 
         # VALIDACIÓN NUEVA: NO NÚMEROS
         if any(char.isdigit() for char in nombre):
-            QMessageBox.warning(self.view, "Error", "El nombre del equipo no puede contener números.")
+            QMessageBox.warning(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Error"),
+                QCoreApplication.translate("UniversalController", "El nombre del equipo no puede contener números.")
+            )
             return
 
         query = QSqlQuery()
@@ -142,7 +160,7 @@ class UniversalController:
             query.addBindValue(color)
             query.addBindValue(ruta)
             query.addBindValue(id_equipo)
-            mensaje = "Equipo actualizado correctamente"
+            mensaje = QCoreApplication.translate("UniversalController", "Equipo actualizado correctamente")
         else:
             # INSERT
             query.prepare("INSERT INTO equipos (nombre, curso, color_camiseta, ruta_escudo) VALUES (?, ?, ?, ?)")
@@ -150,23 +168,31 @@ class UniversalController:
             query.addBindValue(curso)
             query.addBindValue(color)
             query.addBindValue(ruta)
-            mensaje = "Equipo creado correctamente"
+            mensaje = QCoreApplication.translate("UniversalController", "Equipo creado correctamente")
 
         if query.exec():
-            QMessageBox.information(self.view, "Éxito", mensaje)
+            QMessageBox.information(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Éxito"),
+                mensaje
+            )
             self.view.close()
             if self.refrescar_lista:
                 self.refrescar_lista()
         else:
-            QMessageBox.critical(self.view, "Error SQL", query.lastError().text())
+            QMessageBox.critical(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Error SQL"),
+                query.lastError().text()
+            )
 
     def guardar_participante(self):
         # 1. Recogemos datos
         nombre = self.view.txt_part_nombre.text()
         fecha = self.view.date_nacimiento.date().toString("yyyy-MM-dd")
         curso = self.view.txt_part_curso.text()
-        tipo = self.view.combo_tipo.currentText()
-        posicion = self.view.combo_posicion.currentText()
+        tipo = self.view.combo_tipo.currentData()
+        posicion = self.view.combo_posicion.currentData()
         id_equipo = self.view.combo_equipo_asignado.currentData()
         
         amarillas = self.view.spin_amarillas.value()
@@ -175,12 +201,20 @@ class UniversalController:
 
         # --- VALIDACIONES ---
         if not nombre:
-            QMessageBox.warning(self.view, "Error", "El nombre no puede estar vacío.")
+            QMessageBox.warning(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Error"),
+                QCoreApplication.translate("UniversalController", "El nombre no puede estar vacío.")
+            )
             return
 
         # VALIDACIÓN NUEVA: NO NÚMEROS
         if any(char.isdigit() for char in nombre):
-            QMessageBox.warning(self.view, "Error", "El nombre del participante no puede contener números.")
+            QMessageBox.warning(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Error"),
+                QCoreApplication.translate("UniversalController", "El nombre del participante no puede contener números.")
+            )
             return
 
         query = QSqlQuery()
@@ -204,7 +238,7 @@ class UniversalController:
             query.addBindValue(goles)
             query.addBindValue(id_equipo)
             query.addBindValue(self.id_editar)
-            mensaje = "Participante actualizado correctamente"
+            mensaje = QCoreApplication.translate("UniversalController", "Participante actualizado correctamente")
         else:
             # INSERT
             query.prepare("""
@@ -222,12 +256,20 @@ class UniversalController:
             query.addBindValue(rojas)
             query.addBindValue(goles)
             query.addBindValue(id_equipo)
-            mensaje = "Participante registrado correctamente"
+            mensaje = QCoreApplication.translate("UniversalController", "Participante registrado correctamente")
 
         if query.exec():
-            QMessageBox.information(self.view, "Éxito", mensaje)
+            QMessageBox.information(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Éxito"),
+                mensaje
+            )
             self.view.close()
             if self.refrescar_lista:
                 self.refrescar_lista()
         else:
-            QMessageBox.critical(self.view, "Error SQL", query.lastError().text())
+            QMessageBox.critical(
+                self.view,
+                QCoreApplication.translate("UniversalController", "Error SQL"),
+                query.lastError().text()
+            )

@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QTableWidgetItem, QMessageBox, QAbstractItemView
 from PySide6.QtSql import QSqlQuery
+from PySide6.QtCore import QCoreApplication
 from Controllers.universal_controller import UniversalController
 
 class ParticipantesController:
@@ -53,14 +54,12 @@ class ParticipantesController:
             combo = self.main_view.ui.comboBox
             combo.clear()
             # Añadimos opciones normales y DE RANKING
-            combo.addItems([
-                "Todos", 
-                "Jugador", 
-                "Árbitro", 
-                "--- Rankings ---",
-                "Máximos Goleadores", 
-                "Más Tarjetas"
-            ])
+            combo.addItem(QCoreApplication.translate("ParticipantesController", "Todos"), "ALL")
+            combo.addItem(QCoreApplication.translate("ParticipantesController", "Jugador"), "PLAYER")
+            combo.addItem(QCoreApplication.translate("ParticipantesController", "Árbitro"), "REFEREE")
+            combo.addItem(QCoreApplication.translate("ParticipantesController", "--- Rankings ---"), "SEP")
+            combo.addItem(QCoreApplication.translate("ParticipantesController", "Máximos Goleadores"), "TOP_SCORERS")
+            combo.addItem(QCoreApplication.translate("ParticipantesController", "Más Tarjetas"), "MOST_CARDS")
 
     def abrir_formulario_participante(self):
         self.ventana_nuevo = UniversalController(
@@ -77,9 +76,10 @@ class ParticipantesController:
         from PySide6.QtWidgets import QAbstractItemView
         tabla.setEditTriggers(QAbstractItemView.NoEditTriggers)
         
-        filtro_tipo = "Todos"
+        filtro_tipo = "ALL"
         if hasattr(self.main_view.ui, 'comboBox'):
-            filtro_tipo = self.main_view.ui.comboBox.currentText()
+            data = self.main_view.ui.comboBox.currentData()
+            filtro_tipo = data if data else "ALL"
 
         # SQL BASE
         sql = """
@@ -90,16 +90,16 @@ class ParticipantesController:
         """
         
         # Modificar SQL según el filtro seleccionado
-        if filtro_tipo == "Jugador":
+        if filtro_tipo == "PLAYER":
             sql += " WHERE p.tipo_participante LIKE '%Jugador%' OR p.tipo_participante = 'Ambos'"
-        elif filtro_tipo == "Árbitro":
+        elif filtro_tipo == "REFEREE":
             sql += " WHERE p.tipo_participante LIKE '%Árbitro%' OR p.tipo_participante = 'Ambos'"
-        elif filtro_tipo == "Máximos Goleadores":
+        elif filtro_tipo == "TOP_SCORERS":
             sql += " ORDER BY p.goles DESC"
-        elif filtro_tipo == "Más Tarjetas":
+        elif filtro_tipo == "MOST_CARDS":
             # Ordenar por suma de tarjetas (Amarillas + Rojas)
             sql += " ORDER BY (p.tarjetas_amarillas + p.tarjetas_rojas) DESC"
-        elif filtro_tipo == "--- Rankings ---":
+        elif filtro_tipo == "SEP":
             return # No hacer nada si selecciona el separador
             
         query = QSqlQuery()
@@ -127,7 +127,7 @@ class ParticipantesController:
                 tabla.setItem(fila, 2, QTableWidgetItem(es_jugador))
                 tabla.setItem(fila, 3, QTableWidgetItem(str(curso)))
                 tabla.setItem(fila, 4, QTableWidgetItem(es_arbitro))
-                tabla.setItem(fila, 5, QTableWidgetItem(str(posicion)))
+                tabla.setItem(fila, 5, QTableWidgetItem(self.traducir_posicion(str(posicion))))
                 
                 # Estadísticas REALES
                 tabla.setItem(fila, 6, QTableWidgetItem(str(amarillas)))
@@ -176,8 +176,8 @@ class ParticipantesController:
         
         menu = QMenu(self.main_view)
         
-        action_editar = menu.addAction("Editar")
-        action_eliminar = menu.addAction("Eliminar")
+        action_editar = menu.addAction(QCoreApplication.translate("ParticipantesController", "Editar"))
+        action_eliminar = menu.addAction(QCoreApplication.translate("ParticipantesController", "Eliminar"))
         
         action = menu.exec(tabla.mapToGlobal(position))
         
@@ -190,8 +190,8 @@ class ParticipantesController:
         """Elimina un participante de la base de datos"""
         respuesta = QMessageBox.question(
             self.main_view,
-            "Confirmar eliminación",
-            f"¿Deseas eliminar al participante '{nombre}'?",
+            QCoreApplication.translate("ParticipantesController", "Confirmar eliminación"),
+            QCoreApplication.translate("ParticipantesController", "¿Deseas eliminar al participante '{nombre}'?").format(nombre=nombre),
             QMessageBox.Yes | QMessageBox.No
         )
         
@@ -203,13 +203,37 @@ class ParticipantesController:
             if query.exec():
                 QMessageBox.information(
                     self.main_view,
-                    "Éxito",
-                    f"Participante '{nombre}' eliminado correctamente."
+                    QCoreApplication.translate("ParticipantesController", "Éxito"),
+                    QCoreApplication.translate("ParticipantesController", "Participante '{nombre}' eliminado correctamente.").format(nombre=nombre)
                 )
                 self.cargar_participantes()
             else:
                 QMessageBox.critical(
                     self.main_view,
-                    "Error",
-                    f"No se pudo eliminar el participante: {query.lastError().text()}"
+                    QCoreApplication.translate("ParticipantesController", "Error"),
+                    QCoreApplication.translate("ParticipantesController", "No se pudo eliminar el participante: {error}").format(error=query.lastError().text())
                 )
+
+    def retranslate_ui(self):
+        """Refresca textos del combo de filtros tras cambiar idioma."""
+        if hasattr(self.main_view.ui, 'comboBox'):
+            combo = self.main_view.ui.comboBox
+            current = combo.currentData()
+            self.init_filtro_combo()
+            idx = combo.findData(current)
+            if idx >= 0:
+                combo.setCurrentIndex(idx)
+        self.cargar_participantes()
+
+    def traducir_posicion(self, posicion):
+        """Traduce posiciones almacenadas en BD (es) para mostrar en el idioma actual."""
+        if not posicion:
+            return ""
+        mapa = {
+            "Portero": QCoreApplication.translate("FormUniversalView", "Portero"),
+            "Defensa": QCoreApplication.translate("FormUniversalView", "Defensa"),
+            "Centrocampista": QCoreApplication.translate("FormUniversalView", "Centrocampista"),
+            "Delantero": QCoreApplication.translate("FormUniversalView", "Delantero"),
+            "N/A": QCoreApplication.translate("FormUniversalView", "N/A")
+        }
+        return mapa.get(posicion, posicion)

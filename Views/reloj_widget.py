@@ -1,6 +1,6 @@
 from enum import Enum
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QSizePolicy
-from PySide6.QtCore import QTimer, QTime, Signal, Property, Slot, Qt
+from PySide6.QtCore import QTimer, QTime, Signal, Property, Slot, Qt, QCoreApplication, QEvent
 from Views.reloj_widget_ui import Ui_Form
 
 class ModoReloj(Enum):
@@ -43,7 +43,11 @@ class RelojDigital(QWidget):
         # Alarma
         self._alarmEnabled = False
         self._alarmTime = QTime(0, 0)
-        self._alarmMessage = "¡Aviso del Reloj!"
+        self._alarm_default_messages = {
+            "es": "¡Aviso del Reloj!",
+            "en": "Clock alert!"
+        }
+        self._alarmMessage = QCoreApplication.translate("RelojDigital", "¡Aviso del Reloj!")
         
         # Variables Timer/Cronómetro
         self._segundos_transcurridos = 0
@@ -217,3 +221,13 @@ class RelojDigital(QWidget):
             self._pintar_tiempo(QTime.currentTime())
         else:
             self._pintar_tiempo_segundos(self._segundos_transcurridos)
+
+    def retranslate_ui(self):
+        nuevo_default = QCoreApplication.translate("RelojDigital", "¡Aviso del Reloj!")
+        if self._alarmMessage in self._alarm_default_messages.values():
+            self._alarmMessage = nuevo_default
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.LanguageChange:
+            self.retranslate_ui()

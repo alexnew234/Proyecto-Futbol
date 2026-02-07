@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QLabel
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QCoreApplication, QEvent
 
 class DashboardView(QWidget):
     def __init__(self):
@@ -15,17 +15,17 @@ class DashboardView(QWidget):
         self.setLayout(layout)
 
         # 1. TÍTULO
-        lbl_titulo = QLabel("Panel de Control RFEF")
-        lbl_titulo.setStyleSheet("font-size: 20px; font-weight: bold; color: #B71C1C;")
-        lbl_titulo.setAlignment(Qt.AlignCenter)
-        lbl_titulo.setFixedHeight(30) 
-        layout.addWidget(lbl_titulo)
+        self.lbl_titulo = QLabel("")
+        self.lbl_titulo.setStyleSheet("font-size: 20px; font-weight: bold; color: #B71C1C;")
+        self.lbl_titulo.setAlignment(Qt.AlignCenter)
+        self.lbl_titulo.setFixedHeight(30)
+        layout.addWidget(self.lbl_titulo)
 
         # 2. ESPACIO PARA RELOJ (El controlador lo insertará aquí, en el índice 1)
 
         # --- NUEVO: BOTÓN DE CONFIGURACIÓN ARRIBA ---
         # Lo colocamos aquí para que esté en la parte superior.
-        self.btn_config_reloj = QPushButton("⚙️ Configuración del Reloj")
+        self.btn_config_reloj = QPushButton("")
         self.btn_config_reloj.setCursor(Qt.PointingHandCursor)
         # Estilo más pequeño y discreto para la parte superior
         self.btn_config_reloj.setStyleSheet("""
@@ -60,10 +60,10 @@ class DashboardView(QWidget):
         grid = QGridLayout()
         grid.setSpacing(15) # Espaciado entre botones reducido (antes 20)
         
-        self.btn_partidos = QPushButton("Gestión de Partidos")
-        self.btn_resultados = QPushButton("Resultados / Clasificación")
-        self.btn_equipos = QPushButton("Equipos")
-        self.btn_participantes = QPushButton("Participantes")
+        self.btn_partidos = QPushButton("")
+        self.btn_resultados = QPushButton("")
+        self.btn_equipos = QPushButton("")
+        self.btn_participantes = QPushButton("")
         
         # Estilo actualizado: Botones más compactos
         estilo_boton = """
@@ -104,3 +104,18 @@ class DashboardView(QWidget):
         
         # Espaciador final para empujar todo hacia arriba
         layout.addStretch()
+
+        self.retranslate_ui()
+
+    def retranslate_ui(self):
+        self.lbl_titulo.setText(QCoreApplication.translate("DashboardView", "Panel de Control RFEF"))
+        self.btn_config_reloj.setText(QCoreApplication.translate("DashboardView", "⚙️ Configuración del Reloj"))
+        self.btn_partidos.setText(QCoreApplication.translate("DashboardView", "Gestión de Partidos"))
+        self.btn_resultados.setText(QCoreApplication.translate("DashboardView", "Resultados / Clasificación"))
+        self.btn_equipos.setText(QCoreApplication.translate("DashboardView", "Equipos"))
+        self.btn_participantes.setText(QCoreApplication.translate("DashboardView", "Participantes"))
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.LanguageChange:
+            self.retranslate_ui()

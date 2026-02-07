@@ -112,6 +112,11 @@ class CalendarioController:
         self.tree_widget.setColumnCount(1)
         if hasattr(self.tree_widget.header(), 'setStretchLastSection'):
             self.tree_widget.header().setStretchLastSection(True)
+            try:
+                self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            except Exception:
+                pass
+        self.tree_widget.setTextElideMode(Qt.TextElideMode.ElideNone)
         
         self.tree_widget.setHeaderHidden(True) 
         self.tree_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -137,7 +142,7 @@ class CalendarioController:
         layout_botones.setSpacing(10)
         
         # --- 1. BOTONES ---
-        self.btn_generar_ronda = QPushButton("Generar Siguiente Ronda")
+        self.btn_generar_ronda = QPushButton("")
         self.btn_generar_ronda.setStyleSheet("""
             QPushButton {
                 background-color: #2d7d2d;
@@ -149,7 +154,7 @@ class CalendarioController:
             QPushButton:hover { background-color: #3da83d; }
         """)
         
-        self.btn_clasificacion = QPushButton("Ver Clasificación")
+        self.btn_clasificacion = QPushButton("")
         self.btn_clasificacion.setStyleSheet("""
             QPushButton {
                 background-color: #1a5d7d;
@@ -161,7 +166,7 @@ class CalendarioController:
             QPushButton:hover { background-color: #2a7d9d; }
         """)
         
-        self.btn_nueva_temporada = QPushButton("Nueva Temporada")
+        self.btn_nueva_temporada = QPushButton("")
         self.btn_nueva_temporada.setStyleSheet("""
             QPushButton {
                 background-color: #7d2d2d;
@@ -205,7 +210,7 @@ class CalendarioController:
         layout_main.insertLayout(0, layout_botones)
         
         # Resto de elementos...
-        self.lbl_ronda_actual = QLabel("Ronda actual: Ninguna generada")
+        self.lbl_ronda_actual = QLabel("")
         self.lbl_ronda_actual.setStyleSheet("color: #888; font-style: italic; margin-top: 5px;")
         layout_main.insertWidget(1, self.lbl_ronda_actual)
         
@@ -214,9 +219,11 @@ class CalendarioController:
         self.tabla_clasificacion.setStyleSheet("background-color: #252526; color: #ddd; gridline-color: #444;")
         layout_main.addWidget(self.tabla_clasificacion)
         
-        self.btn_volver = QPushButton("Volver al Calendario")
+        self.btn_volver = QPushButton("")
         self.btn_volver.setVisible(False)
         layout_main.addWidget(self.btn_volver)
+
+        self.retranslate_ui()
     
     def init_connections(self):
         self.btn_generar_ronda.clicked.connect(self.generar_siguiente_ronda)
@@ -227,12 +234,22 @@ class CalendarioController:
         self.tree_widget.customContextMenuRequested.connect(self.mostrar_menu_contextual)
     
     def obtener_nombre_equipo(self, id_equipo):
+        if id_equipo is None:
+            return QCoreApplication.translate("Calendario", "Equipo")
+        # Si ya viene un nombre (texto), devolvemos tal cual
+        if isinstance(id_equipo, str):
+            if id_equipo.strip() and not id_equipo.strip().isdigit():
+                return id_equipo
+            try:
+                id_equipo = int(id_equipo.strip())
+            except Exception:
+                return id_equipo
         q = QSqlQuery()
         q.prepare("SELECT nombre FROM equipos WHERE id = ?")
         q.addBindValue(id_equipo)
         if q.exec() and q.next():
             return q.value(0)
-        return "Equipo"
+        return QCoreApplication.translate("Calendario", "Equipo")
 
     def crear_color_ronda(self, fase):
         if fase == "Final": return QColor(180, 50, 50)
@@ -240,6 +257,15 @@ class CalendarioController:
         if fase == "Cuartos": return QColor(60, 120, 180)
         if fase == "Octavos": return QColor(60, 160, 160)
         return QColor(80, 80, 80)
+
+    def traducir_fase(self, fase):
+        mapa = {
+            "Octavos": QCoreApplication.translate("Calendario", "Octavos"),
+            "Cuartos": QCoreApplication.translate("Calendario", "Cuartos"),
+            "Semifinal": QCoreApplication.translate("Calendario", "Semifinal"),
+            "Final": QCoreApplication.translate("Calendario", "Final")
+        }
+        return mapa.get(fase, fase)
 
     def cargar_calendario(self):
         self.tree_widget.clear()
@@ -261,14 +287,27 @@ class CalendarioController:
             rondas.append(query.value(0))
         
         if not rondas:
-            self.lbl_ronda_actual.setText("Ronda actual: Ninguna generada")
-            self.tree_widget.addTopLevelItem(QTreeWidgetItem(["No hay partidos programados"]))
+            self.lbl_ronda_actual.setText(
+                QCoreApplication.translate("Calendario", "Ronda actual: Ninguna generada")
+            )
+            self.tree_widget.addTopLevelItem(
+                QTreeWidgetItem([QCoreApplication.translate("Calendario", "No hay partidos programados")])
+            )
             return
 
-        self.lbl_ronda_actual.setText(f"Ronda actual: {rondas[-1]}")
+        self.lbl_ronda_actual.setText(
+            QCoreApplication.translate("Calendario", "Ronda actual: {fase}").format(
+                fase=self.traducir_fase(rondas[-1])
+            )
+        )
         
+        t_vs = QCoreApplication.translate("Calendario", "vs")
+        t_finalizado = QCoreApplication.translate("Calendario", "Finalizado")
+        t_arb = QCoreApplication.translate("Calendario", "Árb:")
+
         for ronda in rondas:
-            ronda_item = QTreeWidgetItem([ronda])
+            ronda_item = QTreeWidgetItem([self.traducir_fase(ronda)])
+            ronda_item.setData(0, Qt.ItemDataRole.UserRole, ronda)
             ronda_item.setBackground(0, self.crear_color_ronda(ronda))
             ronda_item.setForeground(0, Qt.GlobalColor.white)
             ronda_item.setExpanded(True)
@@ -286,6 +325,10 @@ class CalendarioController:
                     id_p = q.value(0)
                     local = self.obtener_nombre_equipo(q.value(1))
                     visit = self.obtener_nombre_equipo(q.value(2))
+                    if not local:
+                        local = QCoreApplication.translate("Calendario", "Equipo")
+                    if not visit:
+                        visit = QCoreApplication.translate("Calendario", "Equipo")
                     gl = q.value(3)
                     gv = q.value(4)
                     jugado = q.value(5)
@@ -303,12 +346,12 @@ class CalendarioController:
                         qa.prepare("SELECT nombre FROM participantes WHERE id=?")
                         qa.addBindValue(id_arb)
                         if qa.exec() and qa.next():
-                            arb_txt = f" (Árb: {qa.value(0)})"
+                            arb_txt = f" ({t_arb} {qa.value(0)})"
 
                     if jugado:
-                        texto = f"[{hora}]{str_fecha}  {local}  {gl} - {gv}  {visit}{arb_txt}   (Finalizado)"
+                        texto = f"[{hora}]{str_fecha}  {local}  {gl} - {gv}  {visit}{arb_txt}   ({t_finalizado})"
                     else:
-                        texto = f"[{hora}]{str_fecha}  {local}  vs  {visit}{arb_txt}"
+                        texto = f"[{hora}]{str_fecha}  {local}  {t_vs}  {visit}{arb_txt}"
                     
                     item_partido = QTreeWidgetItem([texto])
                     item_partido.setData(0, Qt.ItemDataRole.UserRole, id_p)
@@ -326,14 +369,22 @@ class CalendarioController:
             return
             
         menu = QMenu(self.main_view)
-        accion_eliminar = QAction("Eliminar Partido", self.main_view)
+        accion_eliminar = QAction(
+            QCoreApplication.translate("Calendario", "Eliminar Partido"),
+            self.main_view
+        )
         accion_eliminar.triggered.connect(lambda: self.eliminar_partido(id_partido))
         menu.addAction(accion_eliminar)
         
         menu.exec(self.tree_widget.viewport().mapToGlobal(pos))
 
     def eliminar_partido(self, id_partido):
-        if QMessageBox.question(self.main_view, "Confirmar", "¿Eliminar este partido?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+        if QMessageBox.question(
+            self.main_view,
+            QCoreApplication.translate("Calendario", "Confirmar"),
+            QCoreApplication.translate("Calendario", "¿Eliminar este partido?"),
+            QMessageBox.Yes | QMessageBox.No
+        ) == QMessageBox.Yes:
             QSqlQuery().exec(f"DELETE FROM partidos WHERE id={id_partido}")
             self.cargar_calendario()
             if self.main_controller:
@@ -358,7 +409,11 @@ class CalendarioController:
             qc = QSqlQuery("SELECT count(*) FROM partidos")
             qc.next()
             if qc.value(0) > 0:
-                QMessageBox.information(self.main_view, "Info", "Reinicia la temporada.")
+                QMessageBox.information(
+                    self.main_view,
+                    QCoreApplication.translate("Calendario", "Info"),
+                    QCoreApplication.translate("Calendario", "Reinicia la temporada.")
+                )
                 return
             
             eqs = []
@@ -367,7 +422,11 @@ class CalendarioController:
                 eqs.append(qe.value(0))
                 
             if len(eqs) < 2:
-                QMessageBox.warning(self.main_view, "Error", "Faltan equipos (mínimo 2).")
+                QMessageBox.warning(
+                    self.main_view,
+                    QCoreApplication.translate("Calendario", "Error"),
+                    QCoreApplication.translate("Calendario", "Faltan equipos (mínimo 2).")
+                )
                 return
             
             # --- CAMBIO: Siempre empieza en Octavos ---
@@ -380,20 +439,29 @@ class CalendarioController:
         qchk.prepare("SELECT count(*) FROM partidos WHERE fase=? AND jugado=0")
         qchk.addBindValue(fase_actual)
         if qchk.exec() and qchk.next() and qchk.value(0) > 0:
-            QMessageBox.information(self.main_view, "Info", "Partidos pendientes.")
+            QMessageBox.information(
+                self.main_view,
+                QCoreApplication.translate("Calendario", "Info"),
+                QCoreApplication.translate("Calendario", "Partidos pendientes.")
+            )
             return
             
         # 3. SIGUIENTE FASE
         sig = "Cuartos" if fase_actual == "Octavos" else "Semifinal" if fase_actual == "Cuartos" else "Final" if fase_actual == "Semifinal" else None
         
         if not sig:
-            ganador = "Desconocido"
+            ganador = QCoreApplication.translate("Calendario", "Desconocido")
             qf = QSqlQuery("SELECT equipo_local_id, equipo_visitante_id, goles_local, goles_visitante FROM partidos WHERE fase = 'Final'")
             if qf.exec() and qf.next():
                 gl = qf.value(2)
                 gv = qf.value(3)
-                ganador = self.obtener_nombre_equipo(qf.value(0)) if gl > gv else self.obtener_nombre_equipo(qf.value(1)) if gv > gl else "Empate"
-            QMessageBox.information(self.main_view, "¡Fin!", f"🏆 CAMPEÓN: {ganador.upper()} 🏆")
+                ganador = self.obtener_nombre_equipo(qf.value(0)) if gl > gv else self.obtener_nombre_equipo(qf.value(1)) if gv > gl else QCoreApplication.translate("Calendario", "Empate")
+            texto_fin = QCoreApplication.translate("Calendario", "🏆 CAMPEÓN: {ganador} 🏆").format(ganador=ganador.upper())
+            QMessageBox.information(
+                self.main_view,
+                QCoreApplication.translate("Calendario", "¡Fin!"),
+                texto_fin
+            )
             return
 
         ganadores = []
@@ -406,7 +474,11 @@ class CalendarioController:
                 ganadores.append(qg.value(0))
         
         if len(ganadores) < 2:
-            QMessageBox.warning(self.main_view, "Error", "Faltan ganadores.")
+            QMessageBox.warning(
+                self.main_view,
+                QCoreApplication.translate("Calendario", "Error"),
+                QCoreApplication.translate("Calendario", "Faltan ganadores.")
+            )
             return
             
         self.generar_partidos_fase(sig, ganadores)
@@ -428,10 +500,20 @@ class CalendarioController:
                 creados += 1
         
         if creados > 0:
-            QMessageBox.information(self.main_view, "Éxito", f"Ronda {fase} generada.")
+            QMessageBox.information(
+                self.main_view,
+                QCoreApplication.translate("Calendario", "Éxito"),
+                QCoreApplication.translate("Calendario", "Ronda {fase} generada.").format(
+                    fase=self.traducir_fase(fase)
+                )
+            )
             self.cargar_calendario()
         else:
-            QMessageBox.warning(self.main_view, "Error", "Fallo al generar.")
+            QMessageBox.warning(
+                self.main_view,
+                QCoreApplication.translate("Calendario", "Error"),
+                QCoreApplication.translate("Calendario", "Fallo al generar.")
+            )
 
     def editar_partido(self, item, column):
         """Abre ventana flotante de edición con RELOJ A LA DERECHA"""
@@ -450,6 +532,10 @@ class CalendarioController:
         
         local = self.obtener_nombre_equipo(id_local)
         visit = self.obtener_nombre_equipo(id_visitante)
+        if not local:
+            local = QCoreApplication.translate("Calendario", "Equipo")
+        if not visit:
+            visit = QCoreApplication.translate("Calendario", "Equipo")
         
         gl = q.value(2)
         gv = q.value(3)
@@ -458,7 +544,9 @@ class CalendarioController:
         hora_bd = q.value(6)
 
         dialog = QDialog(self.main_view)
-        dialog.setWindowTitle(f"{local} vs {visit}")
+        dialog.setWindowTitle(
+            QCoreApplication.translate("Calendario", "{local} vs {visit}").format(local=local, visit=visit)
+        )
         dialog.setFixedSize(900, 500) 
         dialog.setStyleSheet("background-color: #252526; color: white;")
         
@@ -468,11 +556,17 @@ class CalendarioController:
         form_layout.setContentsMargins(0, 0, 10, 0)
         
         # Marcador
-        form_layout.addWidget(QLabel(f"Goles {local}:", font=QFont("Arial", 12, QFont.Bold)))
+        form_layout.addWidget(QLabel(
+            QCoreApplication.translate("Calendario", "Goles {equipo}:").format(equipo=local),
+            font=QFont("Arial", 12, QFont.Bold)
+        ))
         w_local = crear_spinbox_con_botones(local, gl)
         form_layout.addWidget(w_local)
 
-        form_layout.addWidget(QLabel(f"Goles {visit}:", font=QFont("Arial", 12, QFont.Bold)))
+        form_layout.addWidget(QLabel(
+            QCoreApplication.translate("Calendario", "Goles {equipo}:").format(equipo=visit),
+            font=QFont("Arial", 12, QFont.Bold)
+        ))
         w_visit = crear_spinbox_con_botones(visit, gv)
         form_layout.addWidget(w_visit)
 
@@ -483,7 +577,7 @@ class CalendarioController:
 
         lh = QHBoxLayout()
         v1 = QVBoxLayout()
-        v1.addWidget(QLabel("Fecha:"))
+        v1.addWidget(QLabel(QCoreApplication.translate("Calendario", "Fecha:")))
         date_edit = QDateEdit()
         date_edit.setCalendarPopup(True)
         date_edit.setStyleSheet("QDateEdit { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; }")
@@ -494,7 +588,7 @@ class CalendarioController:
         lh.addLayout(v1)
 
         v2 = QVBoxLayout()
-        v2.addWidget(QLabel("Hora:"))
+        v2.addWidget(QLabel(QCoreApplication.translate("Calendario", "Hora:")))
         combo_hora = QComboBox()
         combo_hora.setStyleSheet("QComboBox { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; } QComboBox::drop-down { border: none; }")
         for h in range(9, 24): combo_hora.addItems([f"{h:02d}:00", f"{h:02d}:30"])
@@ -504,10 +598,10 @@ class CalendarioController:
         lh.addLayout(v2)
         form_layout.addLayout(lh)
 
-        form_layout.addWidget(QLabel("Árbitro asignado:"))
+        form_layout.addWidget(QLabel(QCoreApplication.translate("Calendario", "Árbitro asignado:")))
         combo_arb = QComboBox()
         combo_arb.setStyleSheet("QComboBox { background-color: #3e3e42; padding: 8px; font-size: 16px; border: 2px solid #555; border-radius: 4px; }")
-        combo_arb.addItem("Sin asignar", None)
+        combo_arb.addItem(QCoreApplication.translate("Calendario", "Sin asignar"), None)
         qa = QSqlQuery("SELECT id, nombre FROM participantes WHERE tipo_participante LIKE '%Árbitro%' OR tipo_participante = 'Ambos'")
         idx_sel = 0; i = 1
         while qa.next():
@@ -517,7 +611,7 @@ class CalendarioController:
         combo_arb.setCurrentIndex(idx_sel)
         form_layout.addWidget(combo_arb)
 
-        btn_players = QPushButton("Gestionar Goles y Tarjetas")
+        btn_players = QPushButton(QCoreApplication.translate("Calendario", "Gestionar Goles y Tarjetas"))
         btn_players.setStyleSheet("QPushButton { background-color: #1a5d7d; color: white; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 10px; } QPushButton:hover { background-color: #2a7d9d; }")
         
         def gestionar_y_sumar():
@@ -533,7 +627,7 @@ class CalendarioController:
         clock_layout = QVBoxLayout()
         clock_layout.setAlignment(Qt.AlignTop)
         
-        lbl_reloj = QLabel("⏱ CRONÓMETRO", font=QFont("Arial", 14, QFont.Bold))
+        lbl_reloj = QLabel(QCoreApplication.translate("Calendario", "⏱ CRONÓMETRO"), font=QFont("Arial", 14, QFont.Bold))
         lbl_reloj.setAlignment(Qt.AlignCenter)
         lbl_reloj.setStyleSheet("margin-bottom: 10px; color: #ddd;")
         clock_layout.addWidget(lbl_reloj)
@@ -543,18 +637,24 @@ class CalendarioController:
         self.reloj_partido.is24Hour = True
         self.reloj_partido.alarmMessage = QCoreApplication.translate("Calendario", "¡Tiempo de partido finalizado!", None)
         self.reloj_partido._alarmEnabled = True
-        self.reloj_partido.alarmTriggered.connect(lambda msg: QMessageBox.information(dialog, "Árbitro", msg))
+        self.reloj_partido.alarmTriggered.connect(
+            lambda msg: QMessageBox.information(
+                dialog,
+                QCoreApplication.translate("Calendario", "Árbitro"),
+                msg
+            )
+        )
         clock_layout.addWidget(self.reloj_partido)
         
-        btn_iniciar = QPushButton("▶ Iniciar")
+        btn_iniciar = QPushButton(QCoreApplication.translate("Calendario", "▶ Iniciar"))
         btn_iniciar.clicked.connect(self.reloj_partido.start)
         btn_iniciar.setStyleSheet("background-color: #2d7d2d; color: white; padding: 10px; font-size: 14px; border-radius: 5px;")
         
-        btn_pausar = QPushButton("⏸ Pausar")
+        btn_pausar = QPushButton(QCoreApplication.translate("Calendario", "⏸ Pausar"))
         btn_pausar.clicked.connect(self.reloj_partido.pause)
         btn_pausar.setStyleSheet("background-color: #d8a600; color: black; padding: 10px; font-size: 14px; border-radius: 5px;")
         
-        btn_reiniciar = QPushButton("↺ Reiniciar")
+        btn_reiniciar = QPushButton(QCoreApplication.translate("Calendario", "↺ Reiniciar"))
         btn_reiniciar.clicked.connect(self.reloj_partido.reset)
         btn_reiniciar.setStyleSheet("background-color: #7d2d2d; color: white; padding: 10px; font-size: 14px; border-radius: 5px;")
         
@@ -573,7 +673,7 @@ class CalendarioController:
         content_layout.addLayout(clock_layout, 40)
         main_layout.addLayout(content_layout)
 
-        btn_save = QPushButton("GUARDAR RESULTADO DEL PARTIDO")
+        btn_save = QPushButton(QCoreApplication.translate("Calendario", "GUARDAR RESULTADO DEL PARTIDO"))
         btn_save.setStyleSheet("QPushButton { background-color: #2d7d2d; color: white; padding: 15px; font-size: 18px; font-weight: 900; border-radius: 8px; margin-top: 10px; } QPushButton:hover { background-color: #3da83d; }")
         
         def guardar():
@@ -585,12 +685,21 @@ class CalendarioController:
             qu.addBindValue(w_local.spinbox.value()); qu.addBindValue(w_visit.spinbox.value())
             qu.addBindValue(id_arb); qu.addBindValue(f_str); qu.addBindValue(h_str); qu.addBindValue(id_partido)
             if qu.exec():
+                QMessageBox.information(
+                    dialog,
+                    QCoreApplication.translate("Calendario", "Éxito"),
+                    QCoreApplication.translate("Calendario", "Resultado actualizado.")
+                )
                 dialog.accept()
                 self.cargar_calendario() 
                 if self.main_controller: 
                     self.main_controller.actualizar_clasificacion() 
             else:
-                QMessageBox.critical(dialog, "Error", qu.lastError().text())
+                QMessageBox.critical(
+                    dialog,
+                    QCoreApplication.translate("Calendario", "Error"),
+                    qu.lastError().text()
+                )
 
         btn_save.clicked.connect(guardar)
         main_layout.addWidget(btn_save)
@@ -600,7 +709,7 @@ class CalendarioController:
 
     def gestionar_jugadores(self, id_local, id_visitante):
         dialog = QDialog(self.main_view)
-        dialog.setWindowTitle("Estadísticas de Jugadores")
+        dialog.setWindowTitle(QCoreApplication.translate("Calendario", "Estadísticas de Jugadores"))
         dialog.setFixedSize(800, 600)
         dialog.setStyleSheet("background-color: #252526; color: white;")
         layout = QVBoxLayout(dialog)
@@ -621,7 +730,12 @@ class CalendarioController:
             playout = QVBoxLayout(page)
             tabla = QTableWidget()
             tabla.setColumnCount(4)
-            tabla.setHorizontalHeaderLabels(["Nombre del Jugador", "Goles (+)", "Amarillas (+)", "Rojas (+)"])
+            tabla.setHorizontalHeaderLabels([
+                QCoreApplication.translate("Calendario", "Nombre del Jugador"),
+                QCoreApplication.translate("Calendario", "Goles (+)"),
+                QCoreApplication.translate("Calendario", "Amarillas (+)"),
+                QCoreApplication.translate("Calendario", "Rojas (+)")
+            ])
             tabla.setStyleSheet("""
                 QTableWidget { background-color: #2b2b2b; color: white; gridline-color: #444; font-size: 14px; selection-background-color: transparent; }
                 QHeaderView::section { background-color: #333; padding: 8px; font-weight: bold; border: 1px solid #444; }
@@ -637,7 +751,10 @@ class CalendarioController:
                 tabla.insertRow(row)
                 pid = q.value(0)
                 nombre = q.value(1)
-                txt = f"{nombre} (Total: {q.value(2)}G)"
+                txt = QCoreApplication.translate("Calendario", "{nombre} (Total: {goles}G)").format(
+                    nombre=nombre,
+                    goles=q.value(2)
+                )
                 item_nom = QTableWidgetItem(txt)
                 item_nom.setFlags(Qt.ItemIsEnabled) 
                 item_nom.setData(Qt.UserRole, pid) 
@@ -664,7 +781,7 @@ class CalendarioController:
             
         layout.addWidget(tabs)
         
-        btn_guardar = QPushButton("CONFIRMAR Y ACTUALIZAR ESTADÍSTICAS")
+        btn_guardar = QPushButton(QCoreApplication.translate("Calendario", "CONFIRMAR Y ACTUALIZAR ESTADÍSTICAS"))
         btn_guardar.setStyleSheet("QPushButton { background-color: #2d7d2d; color: white; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 6px; } QPushButton:hover { background-color: #3da83d; }")
         
         self.goles_local_sumados = 0
@@ -695,13 +812,25 @@ class CalendarioController:
                     if i == 0: self.goles_local_sumados = goles_equipo
                     else: self.goles_visit_sumados = goles_equipo
                 if changed:
-                    QMessageBox.information(dialog, "Éxito", "Estadísticas actualizadas.\nLos goles se han sumado al marcador.")
+                    QMessageBox.information(
+                        dialog,
+                        QCoreApplication.translate("Calendario", "Éxito"),
+                        QCoreApplication.translate("Calendario", "Estadísticas actualizadas.\nLos goles se han sumado al marcador.")
+                    )
                     dialog.accept()
                 else:
-                    QMessageBox.information(dialog, "Info", "No hubo cambios para guardar.")
+                    QMessageBox.information(
+                        dialog,
+                        QCoreApplication.translate("Calendario", "Info"),
+                        QCoreApplication.translate("Calendario", "No hubo cambios para guardar.")
+                    )
                     dialog.reject()
             except Exception as e:
-                QMessageBox.critical(dialog, "Error", str(e))
+                QMessageBox.critical(
+                    dialog,
+                    QCoreApplication.translate("Calendario", "Error"),
+                    str(e)
+                )
                 
         btn_guardar.clicked.connect(guardar_stats)
         layout.addWidget(btn_guardar)
@@ -713,13 +842,30 @@ class CalendarioController:
             return 0, 0
 
     def nueva_temporada(self):
-        if QMessageBox.question(self.main_view, "Reiniciar", "¿Borrar TODO?", QMessageBox.Yes|QMessageBox.No) == QMessageBox.Yes:
+        if QMessageBox.question(
+            self.main_view,
+            QCoreApplication.translate("Calendario", "Reiniciar"),
+            QCoreApplication.translate("Calendario", "¿Borrar TODO?"),
+            QMessageBox.Yes | QMessageBox.No
+        ) == QMessageBox.Yes:
             QSqlQuery().exec("DELETE FROM partidos")
             QSqlQuery().exec("UPDATE participantes SET goles=0, tarjetas_amarillas=0, tarjetas_rojas=0")
             self.asegurar_columnas_bd()
             self.cargar_calendario()
             if self.main_controller: self.main_controller.actualizar_clasificacion()
-            QMessageBox.information(self.main_view, "Listo", "Temporada reiniciada.")
+            QMessageBox.information(
+                self.main_view,
+                QCoreApplication.translate("Calendario", "Listo"),
+                QCoreApplication.translate("Calendario", "Temporada reiniciada.")
+            )
+
+    def retranslate_ui(self):
+        """Actualiza textos de la vista de calendario al cambiar idioma."""
+        self.btn_generar_ronda.setText(QCoreApplication.translate("Calendario", "Generar Siguiente Ronda"))
+        self.btn_clasificacion.setText(QCoreApplication.translate("Calendario", "Ver Clasificación"))
+        self.btn_nueva_temporada.setText(QCoreApplication.translate("Calendario", "Nueva Temporada"))
+        self.btn_volver.setText(QCoreApplication.translate("Calendario", "Volver al Calendario"))
+        self.cargar_calendario()
 
     # --- FUNCIONES RESTAURADAS QUE FALTABAN ---
     def mostrar_clasificacion(self):

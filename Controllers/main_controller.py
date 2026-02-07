@@ -82,12 +82,12 @@ class MainController:
                 self.reloj_config_view.setLayout(layout_config)
             
             # Crear contenedor para los botones
-            lbl_idioma = QLabel(QCoreApplication.translate("MainController", "Idioma / Language:"))
-            lbl_idioma.setStyleSheet("color: white; font-weight: bold; margin-top: 10px;")
+            self.lbl_idioma = QLabel("")
+            self.lbl_idioma.setStyleSheet("color: white; font-weight: bold; margin-top: 10px;")
             
             layout_idiomas = QHBoxLayout()
-            self.btn_es = QPushButton("🇪🇸 Español")
-            self.btn_en = QPushButton("🇺🇸 English")
+            self.btn_es = QPushButton("")
+            self.btn_en = QPushButton("")
             
             estilo_btn = "padding: 8px; font-weight: bold; border-radius: 4px; background-color: #444; color: white;"
             self.btn_es.setStyleSheet(estilo_btn)
@@ -96,7 +96,7 @@ class MainController:
             layout_idiomas.addWidget(self.btn_es)
             layout_idiomas.addWidget(self.btn_en)
             
-            layout_config.addWidget(lbl_idioma)
+            layout_config.addWidget(self.lbl_idioma)
             layout_config.addLayout(layout_idiomas)
             
             # Conectar señales
@@ -129,6 +129,9 @@ class MainController:
         # 6. ASEGURAR RESPONSIVIDAD Y COLOR ROJO SÓLIDO
         self.ensure_toolbar_responsive()
 
+        # 7. Asegurar textos traducibles iniciales
+        self.retraducir_ui()
+
     # =========================================================================
     #  MÉTODOS DE INTERNACIONALIZACIÓN (TRADUCCIÓN)
     # =========================================================================
@@ -151,10 +154,28 @@ class MainController:
         """Refresca los textos visibles"""
         # 1. Refrescar UI cargada de Designer
         self.ui.retranslateUi(self.view)
+
+        # 1.1 Textos creados en MainWindow
+        if hasattr(self.view, 'retranslate_ui'):
+            self.view.retranslate_ui()
+        if hasattr(self.view, 'dashboard') and hasattr(self.view.dashboard, 'retranslate_ui'):
+            self.view.dashboard.retranslate_ui()
+        if hasattr(self, 'reloj_config_view') and hasattr(self.reloj_config_view, 'retranslate_ui'):
+            self.reloj_config_view.retranslate_ui()
+        if hasattr(self, 'calendario_ctrl') and hasattr(self.calendario_ctrl, 'retranslate_ui'):
+            self.calendario_ctrl.retranslate_ui()
+        if hasattr(self, 'participantes_ctrl') and hasattr(self.participantes_ctrl, 'retranslate_ui'):
+            self.participantes_ctrl.retranslate_ui()
         
         # 2. Refrescar textos creados por código
         if hasattr(self, 'act_config_reloj'):
             self.act_config_reloj.setText(QCoreApplication.translate("MainController", "⚙️ Config. Reloj"))
+        if hasattr(self, 'lbl_idioma'):
+            self.lbl_idioma.setText(QCoreApplication.translate("MainController", "Idioma / Language:"))
+        if hasattr(self, 'btn_es'):
+            self.btn_es.setText(QCoreApplication.translate("MainController", "🇪🇸 Español"))
+        if hasattr(self, 'btn_en'):
+            self.btn_en.setText(QCoreApplication.translate("MainController", "🇺🇸 English"))
             
         # 3. Refrescar tabla de clasificación si está visible
         if self.ui.stackedWidget.currentIndex() == 2:
@@ -259,7 +280,7 @@ class MainController:
                 target_container.addAction(self.act_config_reloj)
         else:
             print("[AVISO] No se encontró la barra original. Creando barra auxiliar.")
-            tb = QToolBar("Configuracion")
+            tb = QToolBar(QCoreApplication.translate("MainController", "Configuración"))
             self.view.addToolBar(Qt.TopToolBarArea, tb)
             tb.addAction(self.act_config_reloj)
 
@@ -334,10 +355,19 @@ class MainController:
             tabla = scroll_area.widget()
         
         if not isinstance(tabla, QTableWidget) or tabla.rowCount() == 0:
-            QMessageBox.warning(self.view, "Error", "No hay datos para exportar.")
+            QMessageBox.warning(
+                self.view,
+                QCoreApplication.translate("MainController", "Error"),
+                QCoreApplication.translate("MainController", "No hay datos para exportar.")
+            )
             return
 
-        archivo, _ = QFileDialog.getSaveFileName(self.view, "Guardar Clasificación", "clasificacion.csv", "Archivos CSV (*.csv)")
+        archivo, _ = QFileDialog.getSaveFileName(
+            self.view,
+            QCoreApplication.translate("MainController", "Guardar Clasificación"),
+            "clasificacion.csv",
+            QCoreApplication.translate("MainController", "Archivos CSV (*.csv)")
+        )
         
         if not archivo:
             return 
@@ -348,7 +378,10 @@ class MainController:
                 headers = []
                 for col in range(tabla.columnCount()):
                     item = tabla.horizontalHeaderItem(col)
-                    headers.append(item.text() if item else f"Col {col}")
+                    headers.append(
+                        item.text() if item else
+                        QCoreApplication.translate("MainController", "Col {col}").format(col=col)
+                    )
                 writer.writerow(headers)
                 
                 for row in range(tabla.rowCount()):
@@ -358,13 +391,21 @@ class MainController:
                         row_data.append(item.text() if item else "")
                     writer.writerow(row_data)
             
-            QMessageBox.information(self.view, "Éxito", "Datos exportados correctamente.")
+            QMessageBox.information(
+                self.view,
+                QCoreApplication.translate("MainController", "Éxito"),
+                QCoreApplication.translate("MainController", "Datos exportados correctamente.")
+            )
         except Exception as e:
-            QMessageBox.critical(self.view, "Error", f"Error al guardar: {e}")
+            QMessageBox.critical(
+                self.view,
+                QCoreApplication.translate("MainController", "Error"),
+                QCoreApplication.translate("MainController", "Error al guardar: {error}").format(error=e)
+            )
 
     def mostrar_creditos(self):
         titulo = QCoreApplication.translate("MainController", "Acerca de - Gestor de Torneos")
-        texto = """
+        texto = QCoreApplication.translate("MainController", """
         <h3>⚽ Gestor de Torneos de Fútbol</h3>
         <p>Aplicación para la gestión integral de competiciones deportivas.</p>
         <hr>
@@ -373,12 +414,12 @@ class MainController:
         <p><b>🏷️ Versión:</b> 1.0.0 (Release Final)</p>
         <hr>
         <p><i>Desarrollado con Python 3.13, PySide6 y SQLite.</i></p>
-        """
+        """)
         QMessageBox.about(self.view, titulo, texto)
 
     def mostrar_ayuda(self):
         titulo = QCoreApplication.translate("MainController", "Ayuda - Guía Rápida")
-        texto = """
+        texto = QCoreApplication.translate("MainController", """
         <h3>📖 Cómo utilizar el Gestor</h3>
         <ol>
             <li><b>Crear Equipos:</b> Ve a la pestaña 'Equipos' y registra los clubes participantes.</li>
@@ -388,14 +429,15 @@ class MainController:
             <li><b>Ver Clasificación:</b> Consulta la tabla actualizada automáticamente en la sección 'Clasificación'.</li>
         </ol>
         <p><i>Nota: Es necesario completar todos los partidos de una ronda para poder generar la siguiente.</i></p>
-        """
+        """)
         QMessageBox.about(self.view, titulo, texto)
 
     def arreglar_botones_rebeldes(self):
         page_cal = self.view.ui.page_calendario
         if page_cal:
             for btn in page_cal.findChildren(QPushButton):
-                if "clasificaci" in btn.text().lower() or "tabla" in btn.text().lower():
+                texto = btn.text().lower()
+                if "clasificaci" in texto or "tabla" in texto or "standings" in texto or "table" in texto:
                     try: btn.clicked.disconnect() 
                     except: pass
                     btn.clicked.connect(lambda: self.cambiar_pagina(2))
@@ -445,17 +487,41 @@ class MainController:
         """Calcula y muestra la clasificación REAL desde la BD"""
         scroll_area = self.view.ui.scrollArea_bracket
         tabla = None
+        contenedor = None
         if scroll_area:
-            tabla = scroll_area.widget()
-        
-        if not isinstance(tabla, QTableWidget):
-            tabla = QTableWidget()
-            tabla.setStyleSheet("background-color: #252526; color: #ddd; border: none;")
-            tabla.horizontalHeader().setStretchLastSection(True)
-            tabla.setEditTriggers(QAbstractItemView.NoEditTriggers)
-            tabla.verticalHeader().setVisible(False)
-            if scroll_area:
-                scroll_area.setWidget(tabla)
+            contenedor = scroll_area.widget()
+
+        # Si antes se había reemplazado el widget por la tabla, la reutilizamos
+        if isinstance(contenedor, QTableWidget):
+            tabla = contenedor
+        else:
+            # Si el contenedor existe, buscamos una tabla ya creada
+            if contenedor:
+                tabla = contenedor.findChild(QTableWidget)
+            if tabla is None:
+                tabla = QTableWidget()
+                tabla.setStyleSheet("background-color: #252526; color: #ddd; border: none;")
+                tabla.horizontalHeader().setStretchLastSection(True)
+                tabla.setEditTriggers(QAbstractItemView.NoEditTriggers)
+                tabla.verticalHeader().setVisible(False)
+
+                # Reutilizamos el widget existente del scroll para no destruirlo
+                if contenedor is None and scroll_area:
+                    contenedor = QWidget()
+                    scroll_area.setWidget(contenedor)
+                if contenedor is not None:
+                    layout = contenedor.layout()
+                    if layout is None:
+                        layout = QVBoxLayout(contenedor)
+                        layout.setContentsMargins(0, 0, 0, 0)
+                        contenedor.setLayout(layout)
+                    layout.addWidget(tabla)
+
+                    # Ocultar etiquetas antiguas del bracket para evitar solapes
+                    for nombre in ("label_4", "label_5", "label_6"):
+                        lbl = getattr(self.view.ui, nombre, None)
+                        if lbl:
+                            lbl.hide()
         
         # --- CABECERAS TRADUCIBLES ---
         # Usamos QCoreApplication.translate para que se puedan traducir al cambiar idioma
