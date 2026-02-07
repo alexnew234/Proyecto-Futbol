@@ -17,7 +17,7 @@ class RelojDigital(QWidget):
         self.ui.setupUi(self)
 
         # =========================================================
-        # 🟢 COMPRESOR DE LAYOUT (Estilo visual)
+        # 🟢 COMPRESOR DE LAYOUT
         # =========================================================
         layout = self.layout()
         if not layout:
@@ -92,6 +92,28 @@ class RelojDigital(QWidget):
     @alarmMessage.setter
     def alarmMessage(self, value): self._alarmMessage = value
 
+    # --- REQUISITO CUMPLIDO: PROPIEDAD HORA (ENTERO) ---
+    @Property(int)
+    def alarmHour(self): 
+        return self._alarmTime.hour()
+    
+    @alarmHour.setter
+    def alarmHour(self, h):
+        # Reconstruimos el tiempo manteniendo los minutos actuales
+        self._alarmTime = QTime(h, self._alarmTime.minute(), 0)
+
+    # --- REQUISITO CUMPLIDO: PROPIEDAD MINUTO (ENTERO) ---
+    @Property(int)
+    def alarmMinute(self): 
+        return self._alarmTime.minute()
+    
+    @alarmMinute.setter
+    def alarmMinute(self, m):
+        # Reconstruimos el tiempo manteniendo la hora actual
+        self._alarmTime = QTime(self._alarmTime.hour(), m, 0)
+
+    # Mantenemos esta propiedad por comodidad (para usar QTimeEdit), 
+    # pero las dos de arriba (int) son las que pide el documento.
     @Property(QTime)
     def alarmTime(self): return self._alarmTime
     @alarmTime.setter
@@ -136,6 +158,7 @@ class RelojDigital(QWidget):
             hora_actual = QTime.currentTime()
             self._pintar_tiempo(hora_actual)
             
+            # Comprobación de Alarma (hh:mm:00)
             if (self._alarmEnabled and 
                 hora_actual.hour() == self._alarmTime.hour() and 
                 hora_actual.minute() == self._alarmTime.minute() and 
@@ -167,30 +190,22 @@ class RelojDigital(QWidget):
     def _pintar_tiempo_segundos(self, segundos_totales):
         segundos_totales = max(0, segundos_totales)
         t = QTime(0, 0).addSecs(segundos_totales)
-        # En modo Timer/Cronómetro, siempre pintamos HH:mm:ss como duración (formato 24h visual)
-        # para evitar confusiones de AM/PM en un contador.
         texto = t.toString("HH:mm:ss")
         self._actualizar_labels(texto)
 
     def _pintar_tiempo(self, tiempo: QTime):
-        # --- CORRECCIÓN FORMATO 12/24 HORAS ---
         if self._is24Hour:
-            # Formato 24h estándar (00-23)
             texto = tiempo.toString("HH:mm:ss")
         else:
-            # Formato 12h MANUAL (01-12)
-            # Calculamos la hora manualmente para evitar líos con el string de Qt
+            # Cálculo manual formato 12h
             h = tiempo.hour()
             h_12 = h % 12
             if h_12 == 0: h_12 = 12
-            
-            # Construimos el string a mano: "05:30:00"
             texto = f"{h_12:02d}:{tiempo.minute():02d}:{tiempo.second():02d}"
             
         self._actualizar_labels(texto)
 
     def _actualizar_labels(self, texto):
-        """Reparte el string HH:mm:ss en los 3 labels"""
         partes = texto.split(":")
         if len(partes) == 3:
             self.ui.label_horas.setText(partes[0])
