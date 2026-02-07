@@ -3,7 +3,8 @@ import sys
 import os 
 from PySide6.QtWidgets import (
     QMessageBox, QPushButton, QFileDialog, QTableWidget, 
-    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel, QVBoxLayout
+    QTableWidgetItem, QHeaderView, QAbstractItemView, QLabel, QVBoxLayout,
+    QToolBar, QMenuBar, QSizePolicy
 )
 from PySide6.QtGui import QAction, QColor, QBrush, QPixmap
 from PySide6.QtCore import Qt
@@ -14,6 +15,8 @@ from Controllers.participantes_controller import ParticipantesController
 from Controllers.calendario_controller import CalendarioController
 # IMPORTACIÓN DEL COMPONENTE RELOJ
 from Views.reloj_widget import RelojDigital, ModoReloj
+# IMPORTACIÓN DE LA NUEVA VISTA DE CONFIGURACIÓN
+from Views.reloj_config_view import RelojConfigView
 
 
 class MainController:
@@ -21,13 +24,45 @@ class MainController:
         self.view = main_window
         self.ui = main_window.ui # Acceso directo a la UI
         
+        # --- ARREGLO VISUAL PARA LAS CASILLAS (CHECKBOX) ---
+        # Esto hace que cuando marques una opción, el cuadrado se ponga ROJO
+        # para que se vea claramente que está activado sobre el fondo oscuro.
+        self.view.setStyleSheet("""
+            QCheckBox {
+                color: white;
+                font-size: 14px;
+                spacing: 5px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border: 2px solid #999; /* Borde gris visible */
+                background-color: transparent;
+                border-radius: 3px;
+            }
+            /* ESTADO MARCADO (CHECKED): Fondo Rojo y Borde Blanco */
+            QCheckBox::indicator:checked {
+                background-color: #B71C1C; 
+                border: 2px solid white;
+            }
+            QCheckBox::indicator:unchecked:hover {
+                border: 2px solid #B71C1C;
+            }
+        """)
+        # ---------------------------------------------------
+
         # 1. Controladores
         self.equipos_ctrl = EquiposController(main_window)
         self.participantes_ctrl = ParticipantesController(main_window)
-        # Pasamos self para que el calendario pueda llamar a actualizar_clasificacion
         self.calendario_ctrl = CalendarioController(main_window, self) 
         
         self.equipos_ctrl.funcion_refresco_externa = self.participantes_ctrl.cargar_participantes
+
+        # --- AÑADIR PESTAÑA DE CONFIGURACIÓN RELOJ AL STACK ---
+        self.reloj_config_view = RelojConfigView()
+        self.ui.stackedWidget.addWidget(self.reloj_config_view)
+        self.index_reloj_config = self.ui.stackedWidget.count() - 1
+        # ----------------------------------------------------
 
         # 2. Conexiones
         self.init_toolbar_connections()
@@ -42,42 +77,136 @@ class MainController:
         self.arreglar_botones_rebeldes()
         self.setup_dashboard_logo() 
         
-        # 4. CONFIGURACIÓN DEL RELOJ EN EL DASHBOARD (Requisito: "Uso en distintos contextos")
+        # 4. CONFIGURACIÓN DEL RELOJ EN EL DASHBOARD
         self.setup_reloj_dashboard()
+        
+        # 5. AÑADIR BOTÓN A LA BARRA SUPERIOR (MÉTODO DETECTIVE)
+        self.setup_toolbar_extra_button()
+        
+        # 6. ASEGURAR RESPONSIVIDAD Y COLOR ROJO SÓLIDO
+        self.ensure_toolbar_responsive()
+
+    def ensure_toolbar_responsive(self):
+        """
+        Configura las barras de herramientas para que se adapten al ancho de la ventana.
+        Si no caben los botones, aparecerá un menú desplegable (>>).
+        """
+        # Buscar todas las toolbars de la ventana
+        toolbars = self.view.findChildren(QToolBar)
+        
+        if not toolbars:
+            return
+
+        # Aplicar configuración a todas las barras encontradas
+        for toolbar in toolbars:
+            # Fijar la barra (evita que se pueda arrastrar fuera) ayuda al layout a calcular mejor el espacio
+            toolbar.setMovable(False)
+            toolbar.setFloatable(False)
+            
+            # Configurar la política de tamaño para que intente expandirse horizontalmente
+            sizePolicy = toolbar.sizePolicy()
+            sizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
+            toolbar.setSizePolicy(sizePolicy)
+            
+            # --- MODIFICACIÓN VISUAL: FLECHA CON FONDO ROJO ---
+            toolbar.setStyleSheet("""
+                QToolBar {
+                    border: none;
+                    spacing: 5px;
+                }
+                /* Flecha de extensión (>>) cuando no caben los botones */
+                QToolBar::extension {
+                    background-color: #B71C1C; /* ROJO RFEF SÓLIDO */
+                    color: white;              /* Icono Blanco */
+                    border: 1px solid white;   /* Borde fino blanco */
+                    border-radius: 4px;
+                    padding: 5px;              /* Tamaño generoso */
+                    margin: 2px;
+                    width: 20px;               /* Ancho forzado */
+                }
+                QToolBar::extension:hover {
+                    background-color: #ff3333; /* Rojo más claro al pasar ratón */
+                }
+            """)
+            # -------------------------------------------------------
+            
+            # Forzar recalculo de geometría
+            toolbar.updateGeometry()
+
+    def setup_toolbar_extra_button(self):
+        """ 
+        Busca dónde están los botones 'Salir' o 'Ayuda' e inserta 
+        el de Configuración en el mismo contenedor.
+        """
+        
+        # 1. Crear la Acción
+        self.act_config_reloj = QAction("⚙️ Config. Reloj", self.view)
+        self.act_config_reloj.triggered.connect(lambda: self.cambiar_pagina(self.index_reloj_config))
+        
+        # 2. Identificar acciones que SABEMOS que están en esa barra
+        known_actions = []
+        if hasattr(self.view, 'act_salir_texto'): known_actions.append(self.view.act_salir_texto)
+        if hasattr(self.view, 'act_ayuda'): known_actions.append(self.view.act_ayuda)
+        if hasattr(self.view, 'act_creditos'): known_actions.append(self.view.act_creditos)
+        
+        target_container = None
+        reference_action = None
+        
+        # 3. ESCANEAR TOOLBARS (Barras de Herramientas)
+        all_toolbars = self.view.findChildren(QToolBar)
+        for toolbar in all_toolbars:
+            toolbar_actions = toolbar.actions()
+            for ka in known_actions:
+                if ka in toolbar_actions:
+                    target_container = toolbar
+                    reference_action = ka
+                    break
+            if target_container: break
+            
+        # 4. ESCANEAR MENUBAR (Barra de Menú)
+        if not target_container:
+            menubar = self.view.menuBar()
+            if menubar:
+                menubar_actions = menubar.actions()
+                for ka in known_actions:
+                    if ka in menubar_actions:
+                        target_container = menubar
+                        reference_action = ka
+                        break
+        
+        # 5. INSERTAR EL BOTÓN
+        if target_container:
+            if reference_action:
+                target_container.insertAction(reference_action, self.act_config_reloj)
+            else:
+                target_container.addAction(self.act_config_reloj)
+        else:
+            print("[AVISO] No se encontró la barra original. Creando barra auxiliar.")
+            tb = QToolBar("Configuracion")
+            self.view.addToolBar(Qt.TopToolBarArea, tb)
+            tb.addAction(self.act_config_reloj)
 
     def setup_dashboard_logo(self):
-        """Inserta la imagen de la RFEF en el Dashboard (Compatible con .exe y normal)"""
+        """Inserta la imagen de la RFEF en el Dashboard"""
         try:
-            # Obtenemos la página del dashboard (índice 0 del StackedWidget)
             page_dashboard = self.view.ui.stackedWidget.widget(0)
             
-            # Verificamos si tiene layout
-            if not page_dashboard.layout():
+            if hasattr(page_dashboard, 'image_container'):
+                lbl_imagen = page_dashboard.image_container
+            else:
                 return
 
-            # Creamos el Label para la imagen
-            lbl_imagen = QLabel()
-            lbl_imagen.setAlignment(Qt.AlignCenter)
-            
-            # --- MODIFICACIÓN NECESARIA PARA EL .EXE ---
-            # Determinamos la ruta base dependiendo de si es .exe o script normal
             if hasattr(sys, '_MEIPASS'):
                 base_path = sys._MEIPASS
             else:
                 base_path = os.getcwd()
             
-            # Construimos la ruta: Carpeta base + Resources + img + logo_rfef.jpg
             ruta_img = os.path.join(base_path, "Resources", "img", "logo_rfef.jpg")
-            # -------------------------------------------
             
             if os.path.exists(ruta_img):
                 pixmap = QPixmap(ruta_img)
-                # Escalamos la imagen para que no sea gigante (ej: 250px de alto), manteniendo proporción
-                pixmap = pixmap.scaledToHeight(250, Qt.SmoothTransformation)
+                pixmap = pixmap.scaledToHeight(150, Qt.SmoothTransformation)
                 lbl_imagen.setPixmap(pixmap)
-                
-                # Insertamos en el layout (Posición 1: Debajo del Título, Encima de los botones)
-                page_dashboard.layout().insertWidget(1, lbl_imagen)
             else:
                 print(f"[AVISO] No se encontró la imagen en: {ruta_img}")
                 
@@ -86,24 +215,19 @@ class MainController:
 
     def setup_reloj_dashboard(self):
         """
-        Crea e inserta el reloj digital en el panel principal (Contexto: Reloj de Sistema)
+        Crea e inserta el reloj digital en el panel principal
         """
         try:
-            # 1. Instanciar el componente
             page_dashboard = self.ui.stackedWidget.widget(0)
             self.reloj_sistema = RelojDigital(page_dashboard)
             
-            # 2. Configuración Lógica
             self.reloj_sistema.mode = ModoReloj.CLOCK
             self.reloj_sistema.is24Hour = True
             self.reloj_sistema.alarmEnabled = False
             
-            # 3. ESTILO Y TAMAÑO (Aquí lo hacemos pequeño)
-            # Forzamos un tamaño fijo para que no ocupe toda la pantalla
+            # Tamaño fijo
             self.reloj_sistema.setFixedSize(280, 60) 
             
-            # Sobrescribimos el estilo para reducir la fuente (de 48px a 24px)
-            # y quitar bordes o fondos extraños
             self.reloj_sistema.setStyleSheet("""
                 QLabel { 
                     font-size: 24px; 
@@ -113,14 +237,10 @@ class MainController:
                 }
             """)
             
-            # 4. Iniciar
             self.reloj_sistema.start()
             
-            # 5. INSERTAR EN LA INTERFAZ
             if page_dashboard.layout():
-                # Index 1: Lo coloca justo DEBAJO del Título (que suele ser index 0)
-                # Qt.AlignCenter: Lo centra. 
-                # (Si lo quieres en una esquina, cambia Qt.AlignCenter por Qt.AlignRight)
+                # Index 1: Debajo del Título
                 page_dashboard.layout().insertWidget(1, self.reloj_sistema, 0, Qt.AlignCenter)
             else:
                 layout = QVBoxLayout(page_dashboard)
@@ -131,7 +251,6 @@ class MainController:
             print(f"Error al cargar el reloj en dashboard: {e}")
 
     def exportar_csv(self):
-        """ Exportar datos a CSV """
         scroll_area = self.view.ui.scrollArea_bracket
         tabla = None
         if scroll_area:
@@ -167,7 +286,6 @@ class MainController:
             QMessageBox.critical(self.view, "Error", f"Error al guardar: {e}")
 
     def mostrar_creditos(self):
-        """ Muestra la pantalla de créditos con Autor, Versión y Fecha """
         titulo = "Acerca de - Gestor de Torneos"
         texto = """
         <h3>⚽ Gestor de Torneos de Fútbol</h3>
@@ -182,7 +300,6 @@ class MainController:
         QMessageBox.about(self.view, titulo, texto)
 
     def mostrar_ayuda(self):
-        """ Muestra una guía rápida de uso """
         titulo = "Ayuda - Guía Rápida"
         texto = """
         <h3>📖 Cómo utilizar el Gestor</h3>
@@ -211,9 +328,13 @@ class MainController:
         self.view.dashboard.btn_participantes.clicked.connect(lambda: self.cambiar_pagina(4))
         self.view.dashboard.btn_partidos.clicked.connect(lambda: self.cambiar_pagina(1))
         self.view.dashboard.btn_resultados.clicked.connect(lambda: self.cambiar_pagina(2))
+        
+        # Conexión del botón del dashboard (el que está en el centro de la pantalla)
+        if hasattr(self.view.dashboard, 'btn_config_reloj'):
+             self.view.dashboard.btn_config_reloj.clicked.connect(lambda: self.cambiar_pagina(self.index_reloj_config))
 
     def init_toolbar_connections(self):
-        # Botones existentes
+        # Botones existentes del .ui
         if hasattr(self.view, 'act_equipos_texto'):
             self.view.act_equipos_texto.triggered.connect(lambda: self.cambiar_pagina(3))
         if hasattr(self.view, 'act_participantes_texto'):
@@ -223,11 +344,9 @@ class MainController:
         if hasattr(self.view, 'act_salir_texto'):
             self.view.act_salir_texto.triggered.connect(lambda: self.cambiar_pagina(0))
             
-        # Conexión Clasificación
         if hasattr(self.view, 'act_clasificacion_texto'):
             self.view.act_clasificacion_texto.triggered.connect(lambda: self.cambiar_pagina(2))
 
-        # Ayuda y Créditos
         if hasattr(self.view, 'act_creditos'):
             self.view.act_creditos.triggered.connect(self.mostrar_creditos)
         if hasattr(self.view, 'act_ayuda'):
@@ -247,13 +366,11 @@ class MainController:
 
     def actualizar_clasificacion(self):
         """Calcula y muestra la clasificación REAL desde la BD"""
-        # Buscar la tabla en el scroll area
         scroll_area = self.view.ui.scrollArea_bracket
         tabla = None
         if scroll_area:
             tabla = scroll_area.widget()
         
-        # Si no existe o no es tabla, crear una nueva
         if not isinstance(tabla, QTableWidget):
             tabla = QTableWidget()
             tabla.setStyleSheet("background-color: #252526; color: #ddd; border: none;")
@@ -263,16 +380,14 @@ class MainController:
             if scroll_area:
                 scroll_area.setWidget(tabla)
         
-        # Configurar columnas
         columnas = ["Pos", "Equipo", "PJ", "G", "E", "P", "GF", "GC", "DG", "Pts"]
         tabla.setColumnCount(len(columnas))
         tabla.setHorizontalHeaderLabels(columnas)
         tabla.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents) # Pos pequeña
-        tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents) # Nombre ajuste
+        tabla.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        tabla.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         
-        # 1. Obtener Equipos
-        equipos_stats = {} # {id: {'nombre': 'X', 'pj': 0, ...}}
+        equipos_stats = {}
         q_eq = QSqlQuery("SELECT id, nombre FROM equipos")
         while q_eq.next():
             eid = q_eq.value(0)
@@ -282,7 +397,6 @@ class MainController:
                 'gf': 0, 'gc': 0, 'dg': 0, 'pts': 0
             }
             
-        # 2. Calcular Puntos de Partidos Jugados
         q_part = QSqlQuery("SELECT equipo_local_id, equipo_visitante_id, goles_local, goles_visitante FROM partidos WHERE jugado = 1")
         while q_part.next():
             l_id = q_part.value(0)
@@ -291,46 +405,38 @@ class MainController:
             gv = q_part.value(3)
             
             if l_id in equipos_stats and v_id in equipos_stats:
-                # Local
                 equipos_stats[l_id]['pj'] += 1
                 equipos_stats[l_id]['gf'] += gl
                 equipos_stats[l_id]['gc'] += gv
-                # Visitante
                 equipos_stats[v_id]['pj'] += 1
                 equipos_stats[v_id]['gf'] += gv
                 equipos_stats[v_id]['gc'] += gl
                 
-                if gl > gv: # Gana Local
+                if gl > gv:
                     equipos_stats[l_id]['g'] += 1
                     equipos_stats[l_id]['pts'] += 3
                     equipos_stats[v_id]['p'] += 1
-                elif gv > gl: # Gana Visitante
+                elif gv > gl:
                     equipos_stats[v_id]['g'] += 1
                     equipos_stats[v_id]['pts'] += 3
                     equipos_stats[l_id]['p'] += 1
-                else: # Empate
+                else:
                     equipos_stats[l_id]['e'] += 1
                     equipos_stats[l_id]['pts'] += 1
                     equipos_stats[v_id]['e'] += 1
                     equipos_stats[v_id]['pts'] += 1
 
-        # 3. Calcular DG y Ordenar
         lista_final = []
         for eid, s in equipos_stats.items():
             s['dg'] = s['gf'] - s['gc']
             lista_final.append(s)
             
-        # Ordenar por Puntos (desc), luego DG (desc), luego GF (desc)
         lista_final.sort(key=lambda x: (x['pts'], x['dg'], x['gf']), reverse=True)
         
-        # 4. Rellenar Tabla
         tabla.setRowCount(len(lista_final))
         for i, datos in enumerate(lista_final):
-            # Posición
             tabla.setItem(i, 0, QTableWidgetItem(str(i + 1)))
-            # Equipo
             tabla.setItem(i, 1, QTableWidgetItem(datos['nombre']))
-            # Stats
             tabla.setItem(i, 2, QTableWidgetItem(str(datos['pj'])))
             tabla.setItem(i, 3, QTableWidgetItem(str(datos['g'])))
             tabla.setItem(i, 4, QTableWidgetItem(str(datos['e'])))
@@ -340,7 +446,6 @@ class MainController:
             tabla.setItem(i, 8, QTableWidgetItem(str(datos['dg'])))
             tabla.setItem(i, 9, QTableWidgetItem(str(datos['pts'])))
             
-            # Centrar celdas
             for j in range(10):
                 if tabla.item(i, j):
                     tabla.item(i, j).setTextAlignment(Qt.AlignCenter)
