@@ -143,6 +143,8 @@ class RelojConfigView(QWidget):
         # CONEXIONES INTERNAS (Lógica de la vista)
         self.conectar_controles()
         self.retranslate_ui()
+        # Asegurar que el modo inicial (reloj) muestre la hora actual
+        self.actualizar_reloj()
 
     def conectar_controles(self):
         # 1. Cambios de Propiedades -> Reloj
@@ -188,6 +190,9 @@ class RelojConfigView(QWidget):
             self.spin_duracion.setEnabled(False)
             self.chk_countdown.setEnabled(False)
             self.time_alarm.setEnabled(True)
+            # Forzar refresco inmediato y mantener reloj en marcha
+            self.reloj_demo.reset()
+            self.reloj_demo.start()
         else:
             self.reloj_demo.mode = ModoReloj.TIMER
             self.spin_duracion.setEnabled(True)
