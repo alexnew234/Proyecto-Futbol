@@ -1,11 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+
+project_root = os.path.abspath(os.getcwd())
+db_pkg_root = os.path.join(project_root, "torneofutbol_db")
 
 a = Analysis(
     ['main.py'],
-    pathex=['C:\\Users\\Alex\\Desktop\\torneofutbol_db'],
+    pathex=[project_root, db_pkg_root],
     binaries=[],
-    datas=[('Resources', 'Resources')],
+    datas=[
+        (os.path.join(project_root, "Resources"), "Resources"),
+        (os.path.join(project_root, "translations"), "translations"),
+    ],
     hiddenimports=['torneo_db'],
     hookspath=[],
     hooksconfig={},
