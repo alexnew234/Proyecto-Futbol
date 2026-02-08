@@ -352,7 +352,11 @@ class MainController:
         scroll_area = self.view.ui.scrollArea_bracket
         tabla = None
         if scroll_area:
-            tabla = scroll_area.widget()
+            contenedor = scroll_area.widget()
+            if isinstance(contenedor, QTableWidget):
+                tabla = contenedor
+            elif contenedor:
+                tabla = contenedor.findChild(QTableWidget)
         
         if not isinstance(tabla, QTableWidget) or tabla.rowCount() == 0:
             QMessageBox.warning(
