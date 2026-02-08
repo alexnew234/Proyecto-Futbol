@@ -267,6 +267,39 @@ class CalendarioController:
         }
         return mapa.get(fase, fase)
 
+    def _obtener_config_reloj_partido(self):
+        config = {
+            "duracion": 90 * 60,
+            "countdown": False,
+            "alarm_enabled": True,
+            "alarm_message": QCoreApplication.translate(
+                "Calendario",
+                "Tiempo de partido finalizado!"
+            ),
+        }
+
+        if self.main_controller and hasattr(self.main_controller, "reloj_config_view"):
+            try:
+                cfg = self.main_controller.reloj_config_view.obtener_config()
+                if cfg and cfg.get("modo") == ModoReloj.TIMER:
+                    config["duracion"] = max(0, int(cfg.get("duracion", config["duracion"])))
+                    config["countdown"] = bool(cfg.get("countdown", config["countdown"]))
+                    config["alarm_enabled"] = bool(cfg.get("alarm_enabled", config["alarm_enabled"]))
+                    msg = (cfg.get("alarm_message") or "").strip()
+                    if msg:
+                        config["alarm_message"] = msg
+            except Exception:
+                pass
+
+        return config
+
+    def _formatear_duracion(self, segundos_totales):
+        segundos_totales = max(0, int(segundos_totales))
+        horas = segundos_totales // 3600
+        minutos = (segundos_totales % 3600) // 60
+        segundos = segundos_totales % 60
+        return f"{horas:02d}:{minutos:02d}:{segundos:02d}"
+
     def cargar_calendario(self):
         self.tree_widget.clear()
         self.tree_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -635,16 +668,36 @@ class CalendarioController:
         self.reloj_partido = RelojDigital()
         self.reloj_partido.mode = ModoReloj.TIMER
         self.reloj_partido.is24Hour = True
-        self.reloj_partido.alarmMessage = QCoreApplication.translate("Calendario", "¡Tiempo de partido finalizado!", None)
-        self.reloj_partido._alarmEnabled = True
+        config_reloj = self._obtener_config_reloj_partido()
+        self.reloj_partido.isCountDown = config_reloj["countdown"]
+        self.reloj_partido.duracionPartido = config_reloj["duracion"]
+        self.reloj_partido.alarmEnabled = config_reloj["alarm_enabled"]
+        self.reloj_partido.alarmMessage = config_reloj["alarm_message"]
+        self.reloj_partido.reset()
+
+        self.lbl_aviso_reloj = QLabel(QCoreApplication.translate("Calendario", "Esperando señal del reloj..."))
+        self.lbl_aviso_reloj.setAlignment(Qt.AlignCenter)
+        self.lbl_aviso_reloj.setStyleSheet("color: #ccc; background-color: #333; padding: 6px; border-radius: 4px;")
+
+        def mostrar_aviso_reloj(mensaje, mostrar_popup=False):
+            texto = QCoreApplication.translate("Calendario", "AVISO: {mensaje}").format(mensaje=mensaje)
+            self.lbl_aviso_reloj.setText(texto)
+            self.lbl_aviso_reloj.setStyleSheet("color: white; background-color: #B71C1C; padding: 6px; border-radius: 4px; font-weight: bold;")
+            if mostrar_popup:
+                QMessageBox.information(
+                    dialog,
+                    QCoreApplication.translate("Calendario", "Árbitro"),
+                    mensaje
+                )
+
+        self.reloj_partido.timerFinished.connect(
+            lambda: mostrar_aviso_reloj(self.reloj_partido.alarmMessage, False)
+        )
         self.reloj_partido.alarmTriggered.connect(
-            lambda msg: QMessageBox.information(
-                dialog,
-                QCoreApplication.translate("Calendario", "Árbitro"),
-                msg
-            )
+            lambda msg: mostrar_aviso_reloj(msg, True)
         )
         clock_layout.addWidget(self.reloj_partido)
+        clock_layout.addWidget(self.lbl_aviso_reloj)
         
         btn_iniciar = QPushButton(QCoreApplication.translate("Calendario", "▶ Iniciar"))
         btn_iniciar.clicked.connect(self.reloj_partido.start)
@@ -685,10 +738,14 @@ class CalendarioController:
             qu.addBindValue(w_local.spinbox.value()); qu.addBindValue(w_visit.spinbox.value())
             qu.addBindValue(id_arb); qu.addBindValue(f_str); qu.addBindValue(h_str); qu.addBindValue(id_partido)
             if qu.exec():
+                duracion_segundos = self.reloj_partido.elapsed_seconds()
+                duracion_texto = self._formatear_duracion(duracion_segundos)
                 QMessageBox.information(
                     dialog,
                     QCoreApplication.translate("Calendario", "Éxito"),
-                    QCoreApplication.translate("Calendario", "Resultado actualizado.")
+                    QCoreApplication.translate("Calendario", "Resultado actualizado.\nDuracion del partido: {duracion}").format(
+                        duracion=duracion_texto
+                    )
                 )
                 dialog.accept()
                 self.cargar_calendario() 

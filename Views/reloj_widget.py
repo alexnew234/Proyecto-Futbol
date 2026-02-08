@@ -53,6 +53,7 @@ class RelojDigital(QWidget):
         self._segundos_transcurridos = 0
         self._limite_cronometro = 90 * 60  # Duración (ej. partido)
         self._isCountDown = False          
+        self._timer_finished_emitted = False
 
         # Timer interno (1 segundo)
         self.timer_interno = QTimer(self)
@@ -150,6 +151,7 @@ class RelojDigital(QWidget):
             self._segundos_transcurridos = self._limite_cronometro
         else:
             self._segundos_transcurridos = 0
+        self._timer_finished_emitted = False
         self._actualizar_pantalla_inmediata()
 
     # =========================================================
@@ -172,24 +174,35 @@ class RelojDigital(QWidget):
         # --- MODO TIMER ---
         elif self._mode == ModoReloj.TIMER:
             if self._isCountDown:
-                self._segundos_transcurridos -= 1
+                if self._segundos_transcurridos > 0:
+                    self._segundos_transcurridos -= 1
                 if self._segundos_transcurridos <= 0:
                     self._segundos_transcurridos = 0
-                    self._pintar_tiempo_segundos(0) 
-                    self.timerFinished.emit()               
-                    if self._alarmEnabled:
-                        self.alarmTriggered.emit(self._alarmMessage)
-                    self.pause()
-                    return 
+                    if not self._timer_finished_emitted:
+                        self.timerFinished.emit()
+                        if self._alarmEnabled:
+                            self.alarmTriggered.emit(self._alarmMessage)
+                        self._timer_finished_emitted = True
 
             else:
                 self._segundos_transcurridos += 1
-                if self._alarmEnabled and self._segundos_transcurridos >= self._limite_cronometro:
-                    self.timerFinished.emit()               
-                    self.alarmTriggered.emit(self._alarmMessage)
-                    self.pause()
+                if self._segundos_transcurridos >= self._limite_cronometro and not self._timer_finished_emitted:
+                    self.timerFinished.emit()
+                    if self._alarmEnabled:
+                        self.alarmTriggered.emit(self._alarmMessage)
+                    self._timer_finished_emitted = True
 
             self._pintar_tiempo_segundos(self._segundos_transcurridos)
+
+    def elapsed_seconds(self):
+        """Devuelve los segundos transcurridos en modo TIMER."""
+        if self._mode != ModoReloj.TIMER:
+            return 0
+        if self._isCountDown:
+            elapsed = self._limite_cronometro - self._segundos_transcurridos
+        else:
+            elapsed = self._segundos_transcurridos
+        return max(0, int(elapsed))
 
     def _pintar_tiempo_segundos(self, segundos_totales):
         segundos_totales = max(0, segundos_totales)

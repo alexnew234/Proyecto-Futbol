@@ -166,6 +166,18 @@ class RelojConfigView(QWidget):
         # Inicializar estado
         self.actualizar_reloj()
 
+    def obtener_config(self):
+        """Devuelve la configuracion actual del reloj."""
+        return {
+            "modo": self.combo_mode.currentData(),
+            "is24h": self.chk_24h.isChecked(),
+            "countdown": self.chk_countdown.isChecked(),
+            "alarm_enabled": self.chk_alarm.isChecked(),
+            "alarm_message": self.txt_mensaje.text().strip(),
+            "alarm_time": self.time_alarm.time(),
+            "duracion": self.spin_duracion.value(),
+        }
+
     def actualizar_reloj(self):
         modo = self.combo_mode.currentData()
         if modo is None:
