@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+    name="informe_clasificacion_eliminatorias" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="P_TORNEO_NOMBRE" class="java.lang.String"/>
+    <parameter name="P_GENERADO" class="java.lang.String"/>
+    <parameter name="P_LOGO_PATH" class="java.lang.String"/>
+    <parameter name="P_ELIMINATORIA" class="java.lang.String"/>
+    <parameter name="P_FECHA_DESDE" class="java.lang.String"/>
+    <parameter name="P_FECHA_HASTA" class="java.lang.String"/>
+
+    <queryString>
+        <![CDATA[
+WITH partidos_filtrados AS (
+    SELECT *
+    FROM partidos
+    WHERE ($P{P_ELIMINATORIA} IS NULL OR trim($P{P_ELIMINATORIA}) = '' OR fase = $P{P_ELIMINATORIA})
+      AND ($P{P_FECHA_DESDE} IS NULL OR trim($P{P_FECHA_DESDE}) = '' OR COALESCE(fecha, '') >= $P{P_FECHA_DESDE})
+      AND ($P{P_FECHA_HASTA} IS NULL OR trim($P{P_FECHA_HASTA}) = '' OR COALESCE(fecha, '') <= $P{P_FECHA_HASTA})
+), jugados AS (
+    SELECT * FROM partidos_filtrados WHERE COALESCE(jugado, 0) = 1
+), base AS (
+    SELECT id AS equipo_id, nombre AS equipo FROM equipos
+), stats AS (
+    SELECT
+        b.equipo_id,
+        b.equipo,
+        CAST(SUM(CASE WHEN j.id IS NOT NULL THEN 1 ELSE 0 END) AS INTEGER) AS jugados,
+        CAST(SUM(CASE WHEN ((j.equipo_local_id = b.equipo_id AND j.goles_local > j.goles_visitante) OR (j.equipo_visitante_id = b.equipo_id AND j.goles_visitante > j.goles_local)) THEN 1 ELSE 0 END) AS INTEGER) AS ganados,
+        CAST(SUM(CASE WHEN j.id IS NOT NULL AND j.goles_local = j.goles_visitante THEN 1 ELSE 0 END) AS INTEGER) AS empatados,
+        CAST(SUM(CASE WHEN ((j.equipo_local_id = b.equipo_id AND j.goles_local < j.goles_visitante) OR (j.equipo_visitante_id = b.equipo_id AND j.goles_visitante < j.goles_local)) THEN 1 ELSE 0 END) AS INTEGER) AS perdidos,
+        CAST(SUM(CASE WHEN j.equipo_local_id = b.equipo_id THEN j.goles_local WHEN j.equipo_visitante_id = b.equipo_id THEN j.goles_visitante ELSE 0 END) AS INTEGER) AS gf,
+        CAST(SUM(CASE WHEN j.equipo_local_id = b.equipo_id THEN j.goles_visitante WHEN j.equipo_visitante_id = b.equipo_id THEN j.goles_local ELSE 0 END) AS INTEGER) AS gc
+    FROM base b
+    LEFT JOIN jugados j ON j.equipo_local_id = b.equipo_id OR j.equipo_visitante_id = b.equipo_id
+    GROUP BY b.equipo_id, b.equipo
+), ranking AS (
+    SELECT
+        CAST(RANK() OVER (ORDER BY (ganados * 3 + empatados) DESC, (gf - gc) DESC, gf DESC, equipo ASC) AS INTEGER) AS posicion,
+        equipo,
+        jugados,
+        ganados,
+        empatados,
+        perdidos,
+        gf,
+        gc,
+        CAST((gf - gc) AS INTEGER) AS dg,
+        CAST((ganados * 3 + empatados) AS INTEGER) AS puntos
+    FROM stats
+), goles_fase AS (
+    SELECT GROUP_CONCAT(fase || ': ' || total, ' | ') AS txt
+    FROM (
+        SELECT fase, SUM(goles_local + goles_visitante) AS total
+        FROM jugados
+        GROUP BY fase
+        ORDER BY CASE fase WHEN 'Octavos' THEN 1 WHEN 'Cuartos' THEN 2 WHEN 'Semifinal' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END
+    )
+), cuadro AS (
+    SELECT GROUP_CONCAT(fase || ': ' || local || ' vs ' || visitante || ' -> ' || ganador, ' | ') AS txt
+    FROM (
+        SELECT
+            p.fase,
+            e1.nombre AS local,
+            e2.nombre AS visitante,
+            CASE
+                WHEN COALESCE(p.jugado, 0) = 0 THEN '[PEN] Pendiente'
+                WHEN p.goles_local > p.goles_visitante THEN '[OK] ' || e1.nombre || ' / [OUT] ' || e2.nombre
+                WHEN p.goles_visitante > p.goles_local THEN '[OK] ' || e2.nombre || ' / [OUT] ' || e1.nombre
+                ELSE '[EQ] Empate'
+            END AS ganador
+        FROM partidos_filtrados p
+        JOIN equipos e1 ON e1.id = p.equipo_local_id
+        JOIN equipos e2 ON e2.id = p.equipo_visitante_id
+        ORDER BY CASE p.fase WHEN 'Octavos' THEN 1 WHEN 'Cuartos' THEN 2 WHEN 'Semifinal' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END, p.id
+    )
+)
+SELECT
+    r.posicion,
+    r.equipo,
+    r.jugados,
+    r.ganados,
+    r.empatados,
+    r.perdidos,
+    r.gf,
+    r.gc,
+    r.dg,
+    r.puntos,
+    CASE WHEN r.posicion <= ((SELECT COUNT(*) FROM equipos) + 1) / 2 THEN 'CLASIFICADO' ELSE 'ELIMINADO' END AS estado,
+    CAST((SELECT COALESCE(SUM(goles_local + goles_visitante), 0) FROM jugados) AS INTEGER) AS total_goles,
+    CAST((SELECT COALESCE(COUNT(*), 0) FROM jugados) AS INTEGER) AS total_partidos,
+    CAST((SELECT ROUND(COALESCE(SUM((goles_local + goles_visitante) * 1.0) / NULLIF(COUNT(*), 0), 0), 2) FROM jugados) AS REAL) AS promedio_goles_partido,
+    CAST((SELECT COALESCE(SUM(tarjetas_amarillas + tarjetas_rojas), 0) FROM participantes) AS INTEGER) AS total_tarjetas,
+    (SELECT equipo FROM ranking ORDER BY ganados DESC, puntos DESC, dg DESC LIMIT 1) AS equipo_mas_victorias,
+    (SELECT equipo FROM ranking ORDER BY gf DESC, puntos DESC, dg DESC LIMIT 1) AS equipo_mas_goles,
+    (SELECT equipo FROM ranking ORDER BY gc ASC, puntos DESC, dg DESC LIMIT 1) AS equipo_menos_recibidos,
+    COALESCE((SELECT txt FROM goles_fase), 'Sin partidos jugados') AS goles_por_fase,
+    COALESCE((SELECT txt FROM cuadro), 'Sin eliminatorias') AS cuadro_eliminatorias
+FROM ranking r
+ORDER BY r.posicion
+        ]]>
+    </queryString>
+
+    <field name="posicion" class="java.lang.Long"/>
+    <field name="equipo" class="java.lang.String"/>
+    <field name="jugados" class="java.lang.Long"/>
+    <field name="ganados" class="java.lang.Long"/>
+    <field name="empatados" class="java.lang.Long"/>
+    <field name="perdidos" class="java.lang.Long"/>
+    <field name="gf" class="java.lang.Long"/>
+    <field name="gc" class="java.lang.Long"/>
+    <field name="dg" class="java.lang.Long"/>
+    <field name="puntos" class="java.lang.Long"/>
+    <field name="estado" class="java.lang.String"/>
+    <field name="total_goles" class="java.lang.Long"/>
+    <field name="total_partidos" class="java.lang.Long"/>
+    <field name="promedio_goles_partido" class="java.lang.Double"/>
+    <field name="total_tarjetas" class="java.lang.Long"/>
+    <field name="equipo_mas_victorias" class="java.lang.String"/>
+    <field name="equipo_mas_goles" class="java.lang.String"/>
+    <field name="equipo_menos_recibidos" class="java.lang.String"/>
+    <field name="goles_por_fase" class="java.lang.String"/>
+    <field name="cuadro_eliminatorias" class="java.lang.String"/>
+
+    <variable name="V_TOTAL_GOLES" class="java.lang.Long" calculation="First"><variableExpression><![CDATA[$F{total_goles}]]></variableExpression></variable>
+    <variable name="V_TOTAL_TARJETAS" class="java.lang.Long" calculation="First"><variableExpression><![CDATA[$F{total_tarjetas}]]></variableExpression></variable>
+    <variable name="V_PROMEDIO_GOLES" class="java.lang.Double" calculation="First"><variableExpression><![CDATA[$F{promedio_goles_partido}]]></variableExpression></variable>
+    <variable name="V_MAS_VICTORIAS" class="java.lang.String" calculation="First"><variableExpression><![CDATA[$F{equipo_mas_victorias}]]></variableExpression></variable>
+    <variable name="V_MAS_GOLES" class="java.lang.String" calculation="First"><variableExpression><![CDATA[$F{equipo_mas_goles}]]></variableExpression></variable>
+    <variable name="V_MENOS_RECIBIDOS" class="java.lang.String" calculation="First"><variableExpression><![CDATA[$F{equipo_menos_recibidos}]]></variableExpression></variable>
+    <variable name="V_GOLES_FASE" class="java.lang.String" calculation="First"><variableExpression><![CDATA[$F{goles_por_fase}]]></variableExpression></variable>
+    <variable name="V_CUADRO" class="java.lang.String" calculation="First"><variableExpression><![CDATA[$F{cuadro_eliminatorias}]]></variableExpression></variable>
+
+    <title>
+        <band height="78">
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+                <reportElement x="0" y="3" width="96" height="72"/>
+                <imageExpression><![CDATA[$P{P_LOGO_PATH}]]></imageExpression>
+            </image>
+            <textField>
+                <reportElement x="108" y="10" width="694" height="28"/>
+                <textElement><font size="18" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{P_TORNEO_NOMBRE} + " - Informe Clasificacion y Eliminatorias"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="108" y="44" width="694" height="24"/>
+                <textElement><font size="10"/></textElement>
+                <textFieldExpression><![CDATA["Generado: " + $P{P_GENERADO} + " | Eliminatoria: " + ($P{P_ELIMINATORIA} == null || $P{P_ELIMINATORIA}.trim().isEmpty() ? "Todas" : $P{P_ELIMINATORIA})]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="24">
+            <staticText><reportElement x="0" y="0" width="40" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Pos]]></text></staticText>
+            <staticText><reportElement x="40" y="0" width="182" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Equipo]]></text></staticText>
+            <staticText><reportElement x="222" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[PJ]]></text></staticText>
+            <staticText><reportElement x="266" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[G]]></text></staticText>
+            <staticText><reportElement x="310" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[E]]></text></staticText>
+            <staticText><reportElement x="354" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[P]]></text></staticText>
+            <staticText><reportElement x="398" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[GF]]></text></staticText>
+            <staticText><reportElement x="442" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[GC]]></text></staticText>
+            <staticText><reportElement x="486" y="0" width="44" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[DG]]></text></staticText>
+            <staticText><reportElement x="530" y="0" width="52" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Pts]]></text></staticText>
+            <staticText><reportElement x="582" y="0" width="220" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Estado]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField><reportElement x="0" y="0" width="40" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{posicion}]]></textFieldExpression></textField>
+            <textField><reportElement x="40" y="0" width="182" height="18"/><textFieldExpression><![CDATA[$F{equipo}]]></textFieldExpression></textField>
+            <textField><reportElement x="222" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{jugados}]]></textFieldExpression></textField>
+            <textField><reportElement x="266" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{ganados}]]></textFieldExpression></textField>
+            <textField><reportElement x="310" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{empatados}]]></textFieldExpression></textField>
+            <textField><reportElement x="354" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{perdidos}]]></textFieldExpression></textField>
+            <textField><reportElement x="398" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{gf}]]></textFieldExpression></textField>
+            <textField><reportElement x="442" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{gc}]]></textFieldExpression></textField>
+            <textField><reportElement x="486" y="0" width="44" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{dg}]]></textFieldExpression></textField>
+            <textField><reportElement x="530" y="0" width="52" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{puntos}]]></textFieldExpression></textField>
+            <textField>
+                <reportElement x="582" y="0" width="220" height="18"/>
+                <textElement markup="html"/>
+                <textFieldExpression><![CDATA[
+                    "CLASIFICADO".equals($F{estado})
+                        ? "<font color='#1B5E20'><b>CLASIFICADO</b></font>"
+                        : "<font color='#B71C1C'><b>ELIMINADO</b></font>"
+                ]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="20">
+            <textField>
+                <reportElement x="0" y="0" width="560" height="16"/>
+                <textElement><font size="8"/></textElement>
+                <textFieldExpression><![CDATA[$P{P_TORNEO_NOMBRE} + " | Generado: " + $P{P_GENERADO}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="560" y="0" width="242" height="16"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA["Pagina " + String.valueOf($V{PAGE_NUMBER})]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+    <summary>
+        <band height="136">
+            <staticText><reportElement x="0" y="0" width="180" height="16"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Estadisticas Globales]]></text></staticText>
+            <textField><reportElement x="0" y="18" width="802" height="16"/><textFieldExpression><![CDATA["Total goles: " + String.valueOf($V{V_TOTAL_GOLES}) + " | Total tarjetas: " + String.valueOf($V{V_TOTAL_TARJETAS}) + " | Promedio goles/partido: " + String.valueOf($V{V_PROMEDIO_GOLES})]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="36" width="802" height="16"/><textFieldExpression><![CDATA["Mas victorias: " + $V{V_MAS_VICTORIAS} + " | Mas goles: " + $V{V_MAS_GOLES} + " | Menos goles recibidos: " + $V{V_MENOS_RECIBIDOS}]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="54" width="802" height="16"/><textFieldExpression><![CDATA["Goles por eliminatoria: " + $V{V_GOLES_FASE}]]></textFieldExpression></textField>
+            <textField isStretchWithOverflow="true">
+                <reportElement x="0" y="72" width="802" height="44"/>
+                <textElement><font size="9"/></textElement>
+                <textFieldExpression><![CDATA["Cuadro eliminatorias: " + $V{V_CUADRO}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="0" y="118" width="802" height="16"/>
+                <textElement><font size="8"/></textElement>
+                <text><![CDATA[Leyenda visual: [OK] Clasificado | [OUT] Eliminado | [PEN] Pendiente | [EQ] Empate]]></text>
+            </staticText>
+        </band>
+    </summary>
+</jasperReport>
+

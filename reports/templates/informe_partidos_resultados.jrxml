@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+    name="informe_partidos_resultados" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="P_TORNEO_NOMBRE" class="java.lang.String"/>
+    <parameter name="P_GENERADO" class="java.lang.String"/>
+    <parameter name="P_LOGO_PATH" class="java.lang.String"/>
+    <parameter name="P_ELIMINATORIA" class="java.lang.String"/>
+    <parameter name="P_FECHA_DESDE" class="java.lang.String"/>
+    <parameter name="P_FECHA_HASTA" class="java.lang.String"/>
+
+    <queryString>
+        <![CDATA[
+WITH partidos_filtrados AS (
+    SELECT
+        p.id,
+        p.fase,
+        COALESCE(p.fecha, '') AS fecha,
+        COALESCE(p.hora, '') AS hora,
+        p.equipo_local_id,
+        p.equipo_visitante_id,
+        e1.nombre AS equipo_local,
+        e2.nombre AS equipo_visitante,
+        COALESCE(a.nombre, 'Sin arbitro') AS arbitro,
+        CAST(COALESCE(p.jugado, 0) AS INTEGER) AS jugado,
+        CAST(COALESCE(p.goles_local, 0) AS INTEGER) AS goles_local,
+        CAST(COALESCE(p.goles_visitante, 0) AS INTEGER) AS goles_visitante
+    FROM partidos p
+    JOIN equipos e1 ON e1.id = p.equipo_local_id
+    JOIN equipos e2 ON e2.id = p.equipo_visitante_id
+    LEFT JOIN participantes a ON a.id = p.id_arbitro
+    WHERE ($P{P_ELIMINATORIA} IS NULL OR trim($P{P_ELIMINATORIA}) = '' OR p.fase = $P{P_ELIMINATORIA})
+      AND ($P{P_FECHA_DESDE} IS NULL OR trim($P{P_FECHA_DESDE}) = '' OR COALESCE(p.fecha, '') >= $P{P_FECHA_DESDE})
+      AND ($P{P_FECHA_HASTA} IS NULL OR trim($P{P_FECHA_HASTA}) = '' OR COALESCE(p.fecha, '') <= $P{P_FECHA_HASTA})
+)
+SELECT
+    pf.id,
+    pf.fase,
+    pf.fecha,
+    pf.hora,
+    pf.equipo_local,
+    pf.equipo_visitante,
+    pf.arbitro,
+    CAST(pf.jugado AS INTEGER) AS jugado,
+    CAST(pf.goles_local AS INTEGER) AS goles_local,
+    CAST(pf.goles_visitante AS INTEGER) AS goles_visitante,
+    CASE WHEN pf.jugado = 1 THEN CAST(pf.goles_local AS TEXT) || ' - ' || CAST(pf.goles_visitante AS TEXT) ELSE 'PENDIENTE' END AS resultado,
+    (
+      SELECT COUNT(*)
+      FROM partidos h
+      WHERE h.id < pf.id
+        AND COALESCE(h.jugado, 0) = 1
+        AND ((h.equipo_local_id = pf.equipo_local_id AND h.equipo_visitante_id = pf.equipo_visitante_id)
+          OR (h.equipo_local_id = pf.equipo_visitante_id AND h.equipo_visitante_id = pf.equipo_local_id))
+    ) AS historial_total,
+    (
+      SELECT COALESCE(GROUP_CONCAT(item, ' | '), 'Sin historial')
+      FROM (
+        SELECT
+          COALESCE(h.fecha, 's/f') || ' ' || eh1.nombre || ' ' ||
+          CAST(COALESCE(h.goles_local, 0) AS TEXT) || '-' || CAST(COALESCE(h.goles_visitante, 0) AS TEXT) ||
+          ' ' || eh2.nombre AS item
+        FROM partidos h
+        JOIN equipos eh1 ON eh1.id = h.equipo_local_id
+        JOIN equipos eh2 ON eh2.id = h.equipo_visitante_id
+        WHERE h.id < pf.id
+          AND COALESCE(h.jugado, 0) = 1
+          AND ((h.equipo_local_id = pf.equipo_local_id AND h.equipo_visitante_id = pf.equipo_visitante_id)
+            OR (h.equipo_local_id = pf.equipo_visitante_id AND h.equipo_visitante_id = pf.equipo_local_id))
+        ORDER BY h.id DESC
+        LIMIT 5
+      )
+    ) AS historial_detalle
+FROM partidos_filtrados pf
+ORDER BY CASE pf.fase
+    WHEN 'Octavos' THEN 1
+    WHEN 'Cuartos' THEN 2
+    WHEN 'Semifinal' THEN 3
+    WHEN 'Final' THEN 4
+    ELSE 5 END,
+    COALESCE(pf.fecha, '9999-12-31') ASC,
+    COALESCE(pf.hora, '23:59') ASC,
+    pf.id ASC
+        ]]>
+    </queryString>
+
+    <field name="id" class="java.lang.Long"/>
+    <field name="fase" class="java.lang.String"/>
+    <field name="fecha" class="java.lang.String"/>
+    <field name="hora" class="java.lang.String"/>
+    <field name="equipo_local" class="java.lang.String"/>
+    <field name="equipo_visitante" class="java.lang.String"/>
+    <field name="arbitro" class="java.lang.String"/>
+    <field name="jugado" class="java.lang.Long"/>
+    <field name="goles_local" class="java.lang.Long"/>
+    <field name="goles_visitante" class="java.lang.Long"/>
+    <field name="resultado" class="java.lang.String"/>
+    <field name="historial_total" class="java.lang.Long"/>
+    <field name="historial_detalle" class="java.lang.String"/>
+
+    <title>
+        <band height="78">
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+                <reportElement x="0" y="3" width="96" height="72"/>
+                <imageExpression><![CDATA[$P{P_LOGO_PATH}]]></imageExpression>
+            </image>
+            <textField>
+                <reportElement x="108" y="10" width="694" height="28"/>
+                <textElement><font size="18" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{P_TORNEO_NOMBRE} + " - Informe Partidos y Resultados"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="108" y="44" width="694" height="24"/>
+                <textElement><font size="10"/></textElement>
+                <textFieldExpression><![CDATA["Generado: " + $P{P_GENERADO} + " | Eliminatoria: " + ($P{P_ELIMINATORIA} == null || $P{P_ELIMINATORIA}.trim().isEmpty() ? "Todas" : $P{P_ELIMINATORIA})]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="24">
+            <staticText><reportElement x="0" y="0" width="40" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[ID]]></text></staticText>
+            <staticText><reportElement x="40" y="0" width="70" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Fase]]></text></staticText>
+            <staticText><reportElement x="110" y="0" width="80" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Fecha]]></text></staticText>
+            <staticText><reportElement x="190" y="0" width="50" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Hora]]></text></staticText>
+            <staticText><reportElement x="240" y="0" width="120" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Equipo Local]]></text></staticText>
+            <staticText><reportElement x="360" y="0" width="120" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Equipo Visitante]]></text></staticText>
+            <staticText><reportElement x="480" y="0" width="90" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Arbitro]]></text></staticText>
+            <staticText><reportElement x="570" y="0" width="70" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Resultado]]></text></staticText>
+            <staticText><reportElement x="640" y="0" width="162" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Historial (ultimos)]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField><reportElement x="0" y="0" width="40" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{id}]]></textFieldExpression></textField>
+            <textField><reportElement x="40" y="0" width="70" height="18"/><textFieldExpression><![CDATA[$F{fase}]]></textFieldExpression></textField>
+            <textField><reportElement x="110" y="0" width="80" height="18"/><textFieldExpression><![CDATA[$F{fecha}]]></textFieldExpression></textField>
+            <textField><reportElement x="190" y="0" width="50" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{hora}]]></textFieldExpression></textField>
+            <textField><reportElement x="240" y="0" width="120" height="18"/><textFieldExpression><![CDATA[$F{equipo_local}]]></textFieldExpression></textField>
+            <textField><reportElement x="360" y="0" width="120" height="18"/><textFieldExpression><![CDATA[$F{equipo_visitante}]]></textFieldExpression></textField>
+            <textField><reportElement x="480" y="0" width="90" height="18"/><textFieldExpression><![CDATA[$F{arbitro}]]></textFieldExpression></textField>
+            <textField>
+                <reportElement x="570" y="0" width="70" height="18"/>
+                <textElement textAlignment="Center" markup="html"/>
+                <textFieldExpression><![CDATA[
+                    $F{jugado}.intValue() == 1
+                        ? $F{resultado}
+                        : "<font color='#B71C1C'><b>[PENDIENTE]</b></font>"
+                ]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="640" y="0" width="162" height="18"/>
+                <textElement><font size="8"/></textElement>
+                <textFieldExpression><![CDATA[String.valueOf($F{historial_total}) + " previos: " + $F{historial_detalle}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="20">
+            <textField>
+                <reportElement x="0" y="0" width="560" height="16"/>
+                <textElement><font size="8"/></textElement>
+                <textFieldExpression><![CDATA[$P{P_TORNEO_NOMBRE} + " | Generado: " + $P{P_GENERADO}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="560" y="0" width="242" height="16"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA["Pagina " + String.valueOf($V{PAGE_NUMBER})]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+</jasperReport>

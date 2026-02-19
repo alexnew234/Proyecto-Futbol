@@ -1,4 +1,4 @@
-import csv
+﻿import csv
 import sys
 import os 
 from PySide6.QtWidgets import (
@@ -12,6 +12,15 @@ from PySide6.QtSql import QSqlQuery
 from Controllers.equipos_controller import EquiposController
 from Controllers.participantes_controller import ParticipantesController
 from Controllers.calendario_controller import CalendarioController
+<<<<<<< Updated upstream
+=======
+from Controllers.reports_controller import ReportsController
+# IMPORTACIÃ“N DEL COMPONENTE RELOJ
+from Views.reloj_widget import RelojDigital, ModoReloj
+# IMPORTACIÃ“N DE LA NUEVA VISTA DE CONFIGURACIÃ“N
+from Views.reloj_config_view import RelojConfigView
+
+>>>>>>> Stashed changes
 
 class MainController:
     def __init__(self, main_window):
@@ -22,9 +31,51 @@ class MainController:
         self.participantes_ctrl = ParticipantesController(main_window)
         # Pasamos self para que el calendario pueda llamar a actualizar_clasificacion
         self.calendario_ctrl = CalendarioController(main_window, self) 
-        
+        self.reports_ctrl = ReportsController(main_window)
         self.equipos_ctrl.funcion_refresco_externa = self.participantes_ctrl.cargar_participantes
 
+<<<<<<< Updated upstream
+=======
+        # --- AÃ‘ADIR PESTAÃ‘A DE CONFIGURACIÃ“N RELOJ AL STACK ---
+        self.reloj_config_view = RelojConfigView()
+        self.ui.stackedWidget.addWidget(self.reloj_config_view)
+        self.index_reloj_config = self.ui.stackedWidget.count() - 1
+        
+        # --- AÃ‘ADIR BOTONES DE IDIOMA EN LA PESTAÃ‘A DE CONFIGURACIÃ“N ---
+        # Lo hacemos aquí por código para no tener que editar el archivo de la Vista
+        try:
+            layout_config = self.reloj_config_view.layout()
+            if not layout_config:
+                layout_config = QVBoxLayout(self.reloj_config_view)
+                self.reloj_config_view.setLayout(layout_config)
+            
+            # Crear contenedor para los botones
+            self.lbl_idioma = QLabel("")
+            self.lbl_idioma.setStyleSheet("color: white; font-weight: bold; margin-top: 10px;")
+            
+            layout_idiomas = QHBoxLayout()
+            self.btn_es = QPushButton("")
+            self.btn_en = QPushButton("")
+            
+            estilo_btn = "padding: 8px; font-weight: bold; border-radius: 4px; background-color: #444; color: white;"
+            self.btn_es.setStyleSheet(estilo_btn)
+            self.btn_en.setStyleSheet(estilo_btn)
+            
+            layout_idiomas.addWidget(self.btn_es)
+            layout_idiomas.addWidget(self.btn_en)
+            
+            layout_config.addWidget(self.lbl_idioma)
+            layout_config.addLayout(layout_idiomas)
+            
+            # Conectar señales
+            self.btn_es.clicked.connect(lambda: self.cambiar_idioma("es"))
+            self.btn_en.clicked.connect(lambda: self.cambiar_idioma("en"))
+            
+        except Exception as e:
+            print(f"Error al inyectar botones de idioma: {e}")
+        # ----------------------------------------------------
+
+>>>>>>> Stashed changes
         # 2. Conexiones
         self.init_toolbar_connections()
         if hasattr(self.view, 'dashboard'):
@@ -37,6 +88,173 @@ class MainController:
         # 3. Configuración visual
         self.arreglar_botones_rebeldes()
         self.setup_dashboard_logo() 
+<<<<<<< Updated upstream
+=======
+        
+        # 4. CONFIGURACIÃ“N DEL RELOJ EN EL DASHBOARD
+        self.setup_reloj_dashboard()
+        
+        # 5. AÃ‘ADIR BOTÃ“N A LA BARRA SUPERIOR (MÃ‰TODO CLÃSICO - SIN ROMPER NADA)
+        self.setup_toolbar_extra_button()
+        
+        # 6. ASEGURAR RESPONSIVIDAD Y COLOR ROJO SÃ“LIDO
+        self.ensure_toolbar_responsive()
+
+        # 7. Asegurar textos traducibles iniciales
+        self.retraducir_ui()
+
+    # =========================================================================
+    #  MÃ‰TODOS DE INTERNACIONALIZACIÃ“N (TRADUCCIÃ“N)
+    # =========================================================================
+    def cambiar_idioma(self, codigo_idioma):
+        """Carga el archivo .qm y actualiza toda la interfaz"""
+        if codigo_idioma == "es":
+            self.app.removeTranslator(self.translator)
+        else:
+            archivo = f"app_{codigo_idioma}.qm"
+            ruta = os.path.join(self.translation_path, archivo)
+            if self.translator.load(ruta):
+                self.app.installTranslator(self.translator)
+                print(f"Idioma cambiado a: {codigo_idioma}")
+            else:
+                print(f"No se encontró traducción: {ruta}")
+        
+        self.retraducir_ui()
+
+    def retraducir_ui(self):
+        """Refresca los textos visibles"""
+        # 1. Refrescar UI cargada de Designer
+        self.ui.retranslateUi(self.view)
+
+        # 1.1 Textos creados en MainWindow
+        if hasattr(self.view, 'retranslate_ui'):
+            self.view.retranslate_ui()
+        if hasattr(self.view, 'dashboard') and hasattr(self.view.dashboard, 'retranslate_ui'):
+            self.view.dashboard.retranslate_ui()
+        if hasattr(self, 'reloj_config_view') and hasattr(self.reloj_config_view, 'retranslate_ui'):
+            self.reloj_config_view.retranslate_ui()
+        if hasattr(self, 'calendario_ctrl') and hasattr(self.calendario_ctrl, 'retranslate_ui'):
+            self.calendario_ctrl.retranslate_ui()
+        if hasattr(self, 'participantes_ctrl') and hasattr(self.participantes_ctrl, 'retranslate_ui'):
+            self.participantes_ctrl.retranslate_ui()
+        
+        # 2. Refrescar textos creados por código
+        if hasattr(self, 'act_config_reloj'):
+            self.act_config_reloj.setText(QCoreApplication.translate("MainController", "Config. Reloj"))
+        if hasattr(self, 'lbl_idioma'):
+            self.lbl_idioma.setText(QCoreApplication.translate("MainController", "Idioma / Language:"))
+        if hasattr(self, 'btn_es'):
+            self.btn_es.setText(QCoreApplication.translate("MainController", "Espanol"))
+        if hasattr(self, 'btn_en'):
+            self.btn_en.setText(QCoreApplication.translate("MainController", "English"))
+            
+        # 3. Refrescar tabla de clasificación si está visible
+        if self.ui.stackedWidget.currentIndex() == 2:
+            self.actualizar_clasificacion()
+
+    # =========================================================================
+
+    def ensure_toolbar_responsive(self):
+        """
+        Configura las barras de herramientas para que se adapten al ancho de la ventana.
+        Si no caben los botones, aparecerá un menú desplegable (>>).
+        """
+        # Buscar todas las toolbars de la ventana
+        toolbars = self.view.findChildren(QToolBar)
+        
+        if not toolbars:
+            return
+
+        # Aplicar configuración a todas las barras encontradas
+        for toolbar in toolbars:
+            # Fijar la barra (evita que se pueda arrastrar fuera) ayuda al layout a calcular mejor el espacio
+            toolbar.setMovable(False)
+            toolbar.setFloatable(False)
+            
+            # Configurar la política de tamaño para que intente expandirse horizontalmente
+            sizePolicy = toolbar.sizePolicy()
+            sizePolicy.setHorizontalPolicy(QSizePolicy.Expanding)
+            toolbar.setSizePolicy(sizePolicy)
+            
+            # --- MODIFICACIÃ“N VISUAL: FLECHA CON FONDO ROJO ---
+            toolbar.setStyleSheet("""
+                QToolBar {
+                    border: none;
+                    spacing: 5px;
+                }
+                /* Flecha de extensión (>>) cuando no caben los botones */
+                QToolBar::extension {
+                    background-color: #B71C1C; /* ROJO RFEF SÃ“LIDO */
+                    color: white;              /* Icono Blanco */
+                    border: 1px solid white;   /* Borde fino blanco */
+                    border-radius: 4px;
+                    padding: 5px;              /* Tamaño generoso */
+                    margin: 2px;
+                    width: 20px;               /* Ancho forzado */
+                }
+                QToolBar::extension:hover {
+                    background-color: #ff3333; /* Rojo más claro al pasar ratón */
+                }
+            """)
+            # -------------------------------------------------------
+            
+            # Forzar recalculo de geometría
+            toolbar.updateGeometry()
+
+    def setup_toolbar_extra_button(self):
+        """ 
+        Busca dónde están los botones 'Salir' o 'Ayuda' e inserta 
+        el de Configuración en el mismo contenedor.
+        """
+        
+        # 1. Crear la Acción (TRADUCIBLE)
+        texto_boton = QCoreApplication.translate("MainController", "Config. Reloj")
+        self.act_config_reloj = QAction(texto_boton, self.view)
+        self.act_config_reloj.triggered.connect(lambda: self.cambiar_pagina(self.index_reloj_config))
+        
+        # 2. Identificar acciones que SABEMOS que están en esa barra
+        known_actions = []
+        if hasattr(self.view, 'act_salir_texto'): known_actions.append(self.view.act_salir_texto)
+        if hasattr(self.view, 'act_ayuda'): known_actions.append(self.view.act_ayuda)
+        if hasattr(self.view, 'act_creditos'): known_actions.append(self.view.act_creditos)
+        
+        target_container = None
+        reference_action = None
+        
+        # 3. ESCANEAR TOOLBARS (Barras de Herramientas)
+        all_toolbars = self.view.findChildren(QToolBar)
+        for toolbar in all_toolbars:
+            toolbar_actions = toolbar.actions()
+            for ka in known_actions:
+                if ka in toolbar_actions:
+                    target_container = toolbar
+                    reference_action = ka
+                    break
+            if target_container: break
+            
+        # 4. ESCANEAR MENUBAR (Barra de Menú)
+        if not target_container:
+            menubar = self.view.menuBar()
+            if menubar:
+                menubar_actions = menubar.actions()
+                for ka in known_actions:
+                    if ka in menubar_actions:
+                        target_container = menubar
+                        reference_action = ka
+                        break
+        
+        # 5. INSERTAR EL BOTÃ“N
+        if target_container:
+            if reference_action:
+                target_container.insertAction(reference_action, self.act_config_reloj)
+            else:
+                target_container.addAction(self.act_config_reloj)
+        else:
+            print("[AVISO] No se encontró la barra original. Creando barra auxiliar.")
+            tb = QToolBar(QCoreApplication.translate("MainController", "Configuracion"))
+            self.view.addToolBar(Qt.TopToolBarArea, tb)
+            tb.addAction(self.act_config_reloj)
+>>>>>>> Stashed changes
 
     def setup_dashboard_logo(self):
         """Inserta la imagen de la RFEF en el Dashboard (Compatible con .exe y normal)"""
@@ -88,7 +306,16 @@ class MainController:
             QMessageBox.warning(self.view, "Error", "No hay datos para exportar.")
             return
 
+<<<<<<< Updated upstream
         archivo, _ = QFileDialog.getSaveFileName(self.view, "Guardar Clasificación", "clasificacion.csv", "Archivos CSV (*.csv)")
+=======
+        archivo, _ = QFileDialog.getSaveFileName(
+            self.view,
+            QCoreApplication.translate("MainController", "Guardar Clasificacion"),
+            "clasificacion.csv",
+            QCoreApplication.translate("MainController", "Archivos CSV (*.csv)")
+        )
+>>>>>>> Stashed changes
         
         if not archivo:
             return 
@@ -109,36 +336,57 @@ class MainController:
                         row_data.append(item.text() if item else "")
                     writer.writerow(row_data)
             
+<<<<<<< Updated upstream
             QMessageBox.information(self.view, "Éxito", "Datos exportados correctamente.")
+=======
+            QMessageBox.information(
+                self.view,
+                QCoreApplication.translate("MainController", "Exito"),
+                QCoreApplication.translate("MainController", "Datos exportados correctamente.")
+            )
+>>>>>>> Stashed changes
         except Exception as e:
             QMessageBox.critical(self.view, "Error", f"Error al guardar: {e}")
 
     def mostrar_creditos(self):
+<<<<<<< Updated upstream
         """ Muestra la pantalla de créditos con Autor, Versión y Fecha """
         titulo = "Acerca de - Gestor de Torneos"
         texto = """
         <h3>⚽ Gestor de Torneos de Fútbol</h3>
         <p>Aplicación para la gestión integral de competiciones deportivas.</p>
+=======
+        titulo = QCoreApplication.translate("MainController", "Acerca de - Gestor de Torneos")
+        texto = QCoreApplication.translate("MainController", """
+        <h3>Gestor de Torneos de Futbol</h3>
+        <p>Aplicacion para la gestion integral de competiciones deportivas.</p>
+>>>>>>> Stashed changes
         <hr>
-        <p><b>👤 Autor:</b> Alex</p>
-        <p><b>📅 Fecha de Actualización:</b> 29 de Enero de 2026</p>
-        <p><b>🏷️ Versión:</b> 1.0.0 (Release Final)</p>
+        <p><b>Autor:</b> Alex</p>
+        <p><b>Fecha de Actualizacion:</b> 29 de Enero de 2026</p>
+        <p><b>Version:</b> 1.0.0 (Release Final)</p>
         <hr>
         <p><i>Desarrollado con Python 3.13, PySide6 y SQLite.</i></p>
         """
         QMessageBox.about(self.view, titulo, texto)
 
     def mostrar_ayuda(self):
+<<<<<<< Updated upstream
         """ Muestra una guía rápida de uso """
         titulo = "Ayuda - Guía Rápida"
         texto = """
         <h3>📖 Cómo utilizar el Gestor</h3>
+=======
+        titulo = QCoreApplication.translate("MainController", "Ayuda - Guia Rapida")
+        texto = QCoreApplication.translate("MainController", """
+        <h3>Como utilizar el Gestor</h3>
+>>>>>>> Stashed changes
         <ol>
-            <li><b>Crear Equipos:</b> Ve a la pestaña 'Equipos' y registra los clubes participantes.</li>
-            <li><b>Generar Torneo:</b> En la pestaña 'Partidos', pulsa el botón verde <b>'Generar Siguiente Ronda'</b>.</li>
+            <li><b>Crear Equipos:</b> Ve a la pestana 'Equipos' y registra los clubes participantes.</li>
+            <li><b>Generar Torneo:</b> En la pestana 'Partidos', pulsa el boton verde <b>'Generar Siguiente Ronda'</b>.</li>
             <li><b>Registrar Resultados:</b> Haz <b>doble clic</b> sobre un partido del calendario para editar el marcador, la fecha y asignar goles a jugadores.</li>
             <li><b>Eliminar Errores:</b> Haz <b>clic derecho</b> sobre un partido si necesitas borrarlo.</li>
-            <li><b>Ver Clasificación:</b> Consulta la tabla actualizada automáticamente en la sección 'Clasificación'.</li>
+            <li><b>Ver Clasificacion:</b> Consulta la tabla actualizada automaticamente en la seccion 'Clasificacion'.</li>
         </ol>
         <p><i>Nota: Es necesario completar todos los partidos de una ronda para poder generar la siguiente.</i></p>
         """
@@ -173,6 +421,8 @@ class MainController:
         # Conexión Clasificación
         if hasattr(self.view, 'act_clasificacion_texto'):
             self.view.act_clasificacion_texto.triggered.connect(lambda: self.cambiar_pagina(2))
+        if hasattr(self.view, 'act_informes_texto'):
+            self.view.act_informes_texto.triggered.connect(self.reports_ctrl.show)
 
         # Ayuda y Créditos
         if hasattr(self.view, 'act_creditos'):
@@ -290,4 +540,10 @@ class MainController:
             # Centrar celdas
             for j in range(10):
                 if tabla.item(i, j):
+<<<<<<< Updated upstream
                     tabla.item(i, j).setTextAlignment(Qt.AlignCenter)
+=======
+                    tabla.item(i, j).setTextAlignment(Qt.AlignCenter)
+
+
+>>>>>>> Stashed changes

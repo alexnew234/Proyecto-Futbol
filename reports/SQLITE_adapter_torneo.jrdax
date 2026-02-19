@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<jdbcDataAdapter class="net.sf.jasperreports.data.jdbc.JdbcDataAdapterImpl">
+    <name>SQLITE_torneo_adapter</name>
+    <classpath>C:/Users/Alex/Desktop/Clase/DI/Proyecto_Futbol/reports/lib/sqlite-jdbc-3.41.2.2.jar</classpath>
+    <driver>org.sqlite.JDBC</driver>
+    <username></username>
+    <password></password>
+    <url>jdbc:sqlite:C:/Users/Alex/TorneoFutbolData/torneo_futbol.db</url>
+    <database></database>
+    <savePassword>true</savePassword>
+    <serverAddress></serverAddress>
+</jdbcDataAdapter>

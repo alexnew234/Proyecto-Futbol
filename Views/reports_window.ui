@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ReportsWindow</class>
+ <widget class="QDialog" name="ReportsWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>860</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Centro de Informes</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>14</number>
+   </property>
+   <property name="topMargin">
+    <number>14</number>
+   </property>
+   <property name="rightMargin">
+    <number>14</number>
+   </property>
+   <property name="bottomMargin">
+    <number>14</number>
+   </property>
+   <property name="spacing">
+    <number>10</number>
+   </property>
+   <item>
+    <widget class="QLabel" name="label_title">
+     <property name="styleSheet">
+      <string notr="true">font-size: 22px; font-weight: bold; color: #b71c1c;</string>
+     </property>
+     <property name="text">
+      <string>Informes del Torneo</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+   <widget class="QLabel" name="label_desc">
+     <property name="styleSheet">
+      <string notr="true">color: #b71c1c; font-weight: 600;</string>
+     </property>
+     <property name="text">
+      <string>Genera PDF y CSV para Equipos/Jugadores, Partidos/Resultados y Clasificacion/Eliminatorias.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Configuracion del informe</string>
+     </property>
+     <layout class="QFormLayout" name="formLayout">
+      <property name="labelAlignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_tipo">
+        <property name="text">
+         <string>Tipo de informe:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="combo_report">
+        <item>
+         <property name="text">
+          <string>Informe Equipos y Jugadores</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Informe Partidos y Resultados</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Informe Clasificacion y Eliminatorias</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_equipo">
+        <property name="text">
+         <string>Equipo (opcional):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="combo_equipo"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_jugador">
+        <property name="text">
+         <string>Jugador destacado (opcional):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="input_jugador_destacado">
+        <property name="placeholderText">
+         <string>Nombre o parte del nombre</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_eliminatoria">
+        <property name="text">
+         <string>Eliminatoria (opcional):</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="combo_eliminatoria">
+        <item>
+         <property name="text">
+          <string>Todas</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Octavos</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Cuartos</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Semifinal</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Final</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_fechas">
+        <property name="text">
+         <string>Rango de fechas:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QWidget" name="widget_fechas" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_fechas">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QCheckBox" name="chk_fecha_desde">
+           <property name="text">
+            <string>Desde</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDateEdit" name="date_desde">
+           <property name="calendarPopup">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>12</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="chk_fecha_hasta">
+           <property name="text">
+            <string>Hasta</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QDateEdit" name="date_hasta">
+           <property name="calendarPopup">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_destino">
+        <property name="text">
+         <string>Destino PDF/CSV:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QWidget" name="widget_destino" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_destino">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLineEdit" name="input_output_dir"/>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_browse">
+           <property name="text">
+            <string>Examinar...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btn_open_folder">
+           <property name="text">
+            <string>Abrir carpeta</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_opciones">
+        <property name="text">
+         <string>Opciones:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <widget class="QWidget" name="widget_opciones" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_opciones">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QCheckBox" name="chk_export_csv">
+           <property name="text">
+            <string>Exportar CSV</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="chk_force_native">
+           <property name="text">
+            <string>Forzar motor nativo (sin Jasper)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_bottom">
+     <item>
+      <widget class="QPushButton" name="btn_generar">
+       <property name="styleSheet">
+        <string notr="true">QPushButton { background: #b71c1c; color: white; font-weight: bold; padding: 8px 14px; border-radius: 4px; }
+QPushButton:hover { background: #d62828; }</string>
+       </property>
+       <property name="text">
+        <string>Generar y guardar</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+     <widget class="QLabel" name="lbl_engine">
+       <property name="styleSheet">
+        <string notr="true">font-weight: bold; color: #b71c1c;</string>
+       </property>
+       <property name="text">
+        <string>Motor: -</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="QPlainTextEdit" name="output_log">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Estado de la generacion...</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

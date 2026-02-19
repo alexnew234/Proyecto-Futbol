@@ -5,8 +5,17 @@ a = Analysis(
     ['main.py'],
     pathex=['C:\\Users\\Alex\\Desktop\\torneofutbol_db'],
     binaries=[],
+<<<<<<< Updated upstream
     datas=[('Resources', 'Resources')],
     hiddenimports=['torneo_db'],
+=======
+    datas=[
+        (os.path.join(project_root, "Resources"), "Resources"),
+        (os.path.join(project_root, "translations"), "translations"),
+        (os.path.join(project_root, "reports"), "reports"),
+    ],
+    hiddenimports=['torneo_db', 'pyreportjasper', 'jpype', 'jpype.imports'],
+>>>>>>> Stashed changes
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

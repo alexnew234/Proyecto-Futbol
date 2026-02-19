@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+    name="informe_equipos_jugadores" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="P_TORNEO_NOMBRE" class="java.lang.String"/>
+    <parameter name="P_GENERADO" class="java.lang.String"/>
+    <parameter name="P_LOGO_PATH" class="java.lang.String"/>
+    <parameter name="P_EQUIPO" class="java.lang.String"/>
+    <parameter name="P_JUGADOR_DESTACADO" class="java.lang.String"/>
+    <parameter name="P_FECHA_DESDE" class="java.lang.String"/>
+    <parameter name="P_FECHA_HASTA" class="java.lang.String"/>
+
+    <queryString>
+        <![CDATA[
+WITH players AS (
+    SELECT
+        e.id AS equipo_id,
+        e.nombre AS equipo,
+        p.nombre AS jugador,
+        COALESCE(p.posicion, '-') AS posicion,
+        CAST(COALESCE(p.goles, 0) AS INTEGER) AS goles,
+        CAST(COALESCE(p.tarjetas_amarillas, 0) AS INTEGER) AS amarillas,
+        CAST(COALESCE(p.tarjetas_rojas, 0) AS INTEGER) AS rojas
+    FROM equipos e
+    LEFT JOIN participantes p ON p.id_equipo = e.id
+      AND (p.tipo_participante LIKE '%Jugador%' OR p.tipo_participante = 'Ambos')
+    WHERE ($P{P_EQUIPO} IS NULL OR trim($P{P_EQUIPO}) = '' OR e.nombre = $P{P_EQUIPO})
+      AND ($P{P_JUGADOR_DESTACADO} IS NULL OR trim($P{P_JUGADOR_DESTACADO}) = '' OR p.nombre LIKE '%' || $P{P_JUGADOR_DESTACADO} || '%')
+      AND (
+        (($P{P_FECHA_DESDE} IS NULL OR trim($P{P_FECHA_DESDE}) = '') AND ($P{P_FECHA_HASTA} IS NULL OR trim($P{P_FECHA_HASTA}) = ''))
+        OR EXISTS (
+            SELECT 1
+            FROM partidos pp
+            WHERE (pp.equipo_local_id = e.id OR pp.equipo_visitante_id = e.id)
+              AND ($P{P_FECHA_DESDE} IS NULL OR trim($P{P_FECHA_DESDE}) = '' OR COALESCE(pp.fecha, '') >= $P{P_FECHA_DESDE})
+              AND ($P{P_FECHA_HASTA} IS NULL OR trim($P{P_FECHA_HASTA}) = '' OR COALESCE(pp.fecha, '') <= $P{P_FECHA_HASTA})
+        )
+      )
+), totals AS (
+    SELECT
+        equipo_id,
+        CAST(SUM(COALESCE(goles, 0)) AS INTEGER) AS total_goles,
+        CAST(SUM(COALESCE(amarillas, 0)) AS INTEGER) AS total_amarillas,
+        CAST(SUM(COALESCE(rojas, 0)) AS INTEGER) AS total_rojas,
+        ROUND(AVG(COALESCE(goles, 0)), 2) AS promedio_goles,
+        CAST(MAX(COALESCE(goles, 0)) AS INTEGER) AS max_goles,
+        CAST(MAX(COALESCE(amarillas + rojas, 0)) AS INTEGER) AS max_tarjetas
+    FROM players
+    GROUP BY equipo_id
+)
+SELECT
+    pl.equipo,
+    COALESCE(pl.jugador, '(Sin jugadores)') AS jugador,
+    COALESCE(pl.posicion, '-') AS posicion,
+    CAST(COALESCE(pl.goles, 0) AS INTEGER) AS goles,
+    CAST(COALESCE(pl.amarillas, 0) AS INTEGER) AS amarillas,
+    CAST(COALESCE(pl.rojas, 0) AS INTEGER) AS rojas,
+    CAST(COALESCE(t.total_goles, 0) AS INTEGER) AS total_goles,
+    CAST(COALESCE(t.total_amarillas, 0) AS INTEGER) AS total_amarillas,
+    CAST(COALESCE(t.total_rojas, 0) AS INTEGER) AS total_rojas,
+    CAST(COALESCE(t.promedio_goles, 0) AS REAL) AS promedio_goles,
+    CASE WHEN CAST(COALESCE(pl.goles, 0) AS INTEGER) = CAST(COALESCE(t.max_goles, 0) AS INTEGER) AND CAST(COALESCE(pl.goles, 0) AS INTEGER) > 0 THEN 'SI' ELSE '' END AS top_goles,
+    CASE WHEN CAST(COALESCE(pl.amarillas + pl.rojas, 0) AS INTEGER) = CAST(COALESCE(t.max_tarjetas, 0) AS INTEGER) AND CAST(COALESCE(pl.amarillas + pl.rojas, 0) AS INTEGER) > 0 THEN 'SI' ELSE '' END AS top_tarjetas
+FROM players pl
+LEFT JOIN totals t ON t.equipo_id = pl.equipo_id
+ORDER BY pl.equipo ASC, jugador ASC
+        ]]>
+    </queryString>
+
+    <field name="equipo" class="java.lang.String"/>
+    <field name="jugador" class="java.lang.String"/>
+    <field name="posicion" class="java.lang.String"/>
+    <field name="goles" class="java.lang.Long"/>
+    <field name="amarillas" class="java.lang.Long"/>
+    <field name="rojas" class="java.lang.Long"/>
+    <field name="total_goles" class="java.lang.Long"/>
+    <field name="total_amarillas" class="java.lang.Long"/>
+    <field name="total_rojas" class="java.lang.Long"/>
+    <field name="promedio_goles" class="java.lang.Double"/>
+    <field name="top_goles" class="java.lang.String"/>
+    <field name="top_tarjetas" class="java.lang.String"/>
+
+    <title>
+        <band height="78">
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" onErrorType="Blank">
+                <reportElement x="0" y="3" width="96" height="72"/>
+                <imageExpression><![CDATA[$P{P_LOGO_PATH}]]></imageExpression>
+            </image>
+            <textField>
+                <reportElement x="108" y="10" width="694" height="28"/>
+                <textElement textAlignment="Left">
+                    <font size="18" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{P_TORNEO_NOMBRE} + " - Informe Equipos y Jugadores"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="108" y="44" width="694" height="28"/>
+                <textElement>
+                    <font size="10"/>
+                </textElement>
+                <textFieldExpression><![CDATA[
+                    "Generado: " + $P{P_GENERADO}
+                    + " | Equipo: " + ($P{P_EQUIPO} == null || $P{P_EQUIPO}.trim().isEmpty() ? "Todos" : $P{P_EQUIPO})
+                    + " | Fechas: "
+                    + (($P{P_FECHA_DESDE} == null || $P{P_FECHA_DESDE}.trim().isEmpty()) ? "-" : $P{P_FECHA_DESDE})
+                    + " a "
+                    + (($P{P_FECHA_HASTA} == null || $P{P_FECHA_HASTA}.trim().isEmpty()) ? "-" : $P{P_FECHA_HASTA})
+                ]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="24">
+            <staticText><reportElement x="0" y="0" width="90" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Equipo]]></text></staticText>
+            <staticText><reportElement x="90" y="0" width="105" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Jugador]]></text></staticText>
+            <staticText><reportElement x="195" y="0" width="70" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Posicion]]></text></staticText>
+            <staticText><reportElement x="265" y="0" width="42" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[G]]></text></staticText>
+            <staticText><reportElement x="307" y="0" width="42" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[A]]></text></staticText>
+            <staticText><reportElement x="349" y="0" width="42" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[R]]></text></staticText>
+            <staticText><reportElement x="391" y="0" width="57" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Tot G]]></text></staticText>
+            <staticText><reportElement x="448" y="0" width="57" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Tot A]]></text></staticText>
+            <staticText><reportElement x="505" y="0" width="57" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Tot R]]></text></staticText>
+            <staticText><reportElement x="562" y="0" width="72" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Prom G]]></text></staticText>
+            <staticText><reportElement x="634" y="0" width="84" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Top Goles]]></text></staticText>
+            <staticText><reportElement x="718" y="0" width="84" height="24" mode="Opaque" backcolor="#B71C1C"/><textElement><font size="10" isBold="true"/></textElement><text><![CDATA[Top Tarjetas]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField><reportElement x="0" y="0" width="90" height="18"/><textFieldExpression><![CDATA[$F{equipo}]]></textFieldExpression></textField>
+            <textField><reportElement x="90" y="0" width="105" height="18"/><textFieldExpression><![CDATA[$F{jugador}]]></textFieldExpression></textField>
+            <textField><reportElement x="195" y="0" width="70" height="18"/><textFieldExpression><![CDATA[$F{posicion}]]></textFieldExpression></textField>
+            <textField><reportElement x="265" y="0" width="42" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{goles}]]></textFieldExpression></textField>
+            <textField><reportElement x="307" y="0" width="42" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{amarillas}]]></textFieldExpression></textField>
+            <textField><reportElement x="349" y="0" width="42" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{rojas}]]></textFieldExpression></textField>
+            <textField><reportElement x="391" y="0" width="57" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{total_goles}]]></textFieldExpression></textField>
+            <textField><reportElement x="448" y="0" width="57" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{total_amarillas}]]></textFieldExpression></textField>
+            <textField><reportElement x="505" y="0" width="57" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{total_rojas}]]></textFieldExpression></textField>
+            <textField><reportElement x="562" y="0" width="72" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{promedio_goles}]]></textFieldExpression></textField>
+            <textField><reportElement x="634" y="0" width="84" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{top_goles}]]></textFieldExpression></textField>
+            <textField><reportElement x="718" y="0" width="84" height="18"/><textElement textAlignment="Center"/><textFieldExpression><![CDATA[$F{top_tarjetas}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="20">
+            <textField>
+                <reportElement x="0" y="0" width="560" height="16"/>
+                <textElement><font size="8"/></textElement>
+                <textFieldExpression><![CDATA[$P{P_TORNEO_NOMBRE} + " | Generado: " + $P{P_GENERADO}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="560" y="0" width="242" height="16"/>
+                <textElement textAlignment="Right"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA["Pagina " + String.valueOf($V{PAGE_NUMBER})]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+</jasperReport>
