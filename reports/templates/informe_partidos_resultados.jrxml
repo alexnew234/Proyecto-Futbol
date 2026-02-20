@@ -114,7 +114,14 @@ ORDER BY CASE pf.fase
             <textField>
                 <reportElement x="108" y="44" width="694" height="24"/>
                 <textElement><font size="10"/></textElement>
-                <textFieldExpression><![CDATA["Generado: " + $P{P_GENERADO} + " | Eliminatoria: " + ($P{P_ELIMINATORIA} == null || $P{P_ELIMINATORIA}.trim().isEmpty() ? "Todas" : $P{P_ELIMINATORIA})]]></textFieldExpression>
+                <textFieldExpression><![CDATA[
+                    "Generado: " + $P{P_GENERADO}
+                    + " | Eliminatoria: " + ($P{P_ELIMINATORIA} == null || $P{P_ELIMINATORIA}.trim().isEmpty() ? "Todas" : $P{P_ELIMINATORIA})
+                    + " | Fechas: "
+                    + (($P{P_FECHA_DESDE} == null || $P{P_FECHA_DESDE}.trim().isEmpty()) ? "-" : $P{P_FECHA_DESDE})
+                    + " a "
+                    + (($P{P_FECHA_HASTA} == null || $P{P_FECHA_HASTA}.trim().isEmpty()) ? "-" : $P{P_FECHA_HASTA})
+                ]]></textFieldExpression>
             </textField>
         </band>
     </title>

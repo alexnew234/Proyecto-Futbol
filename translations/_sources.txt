@@ -1,0 +1,144 @@
+[Calendario] AVISO: {mensaje}
+[Calendario] Amarillas (+)
+[Calendario] CONFIRMAR Y ACTUALIZAR ESTADÍSTICAS
+[Calendario] Confirmar
+[Calendario] Cuartos
+[Calendario] Desconocido
+[Calendario] Eliminar Partido
+[Calendario] Empate
+[Calendario] Equipo
+[Calendario] Error
+[Calendario] Esperando señal del reloj...
+[Calendario] Estadísticas actualizadas.
+Los goles se han sumado al marcador.
+[Calendario] Estadísticas de Jugadores
+[Calendario] Fallo al generar.
+[Calendario] Faltan equipos (mínimo 2).
+[Calendario] Faltan ganadores.
+[Calendario] Fecha:
+[Calendario] Final
+[Calendario] Finalizado
+[Calendario] GUARDAR RESULTADO DEL PARTIDO
+[Calendario] Generar Siguiente Ronda
+[Calendario] Gestionar Goles y Tarjetas
+[Calendario] Goles (+)
+[Calendario] Goles {equipo}:
+[Calendario] Hora:
+[Calendario] Info
+[Calendario] Listo
+[Calendario] No hay partidos programados
+[Calendario] No hubo cambios para guardar.
+[Calendario] Nombre del Jugador
+[Calendario] Nueva Temporada
+[Calendario] Octavos
+[Calendario] Partidos pendientes.
+[Calendario] Reinicia la temporada.
+[Calendario] Reiniciar
+[Calendario] Resultado actualizado.
+Duracion del partido: {duracion}
+[Calendario] Rojas (+)
+[Calendario] Ronda actual: Ninguna generada
+[Calendario] Ronda actual: {fase}
+[Calendario] Ronda {fase} generada.
+[Calendario] Semifinal
+[Calendario] Sin asignar
+[Calendario] Temporada reiniciada.
+[Calendario] Tiempo de partido finalizado!
+[Calendario] Ver Clasificación
+[Calendario] Volver al Calendario
+[Calendario] vs
+[Calendario] {local} vs {visit}
+[Calendario] {nombre} (Total: {goles}G)
+[Calendario] ¡Fin!
+[Calendario] ¿Borrar TODO?
+[Calendario] ¿Eliminar este partido?
+[Calendario] Árb:
+[Calendario] Árbitro
+[Calendario] Árbitro asignado:
+[Calendario] Éxito
+[Calendario] ↺ Reiniciar
+[Calendario] ⏱ CRONÓMETRO
+[Calendario] ⏸ Pausar
+[Calendario] ▶ Iniciar
+[Calendario] 🏆 CAMPEÓN: {ganador} 🏆
+[DashboardView] Equipos
+[DashboardView] Gestión de Partidos
+[DashboardView] Panel de Control RFEF
+[DashboardView] Participantes
+[DashboardView] Resultados / Clasificación
+[DashboardView] ⚙ Configuración del Reloj
+[MainController] <h3>Como utilizar el Gestor</h3>
+        <ol>
+            <li><b>Crear Equipos:</b> Ve a la pestana 'Equipos' y registra los clubes participantes.</li>
+            <li><b>Generar Torneo:</b> En la pestana 'Partidos', pulsa el boton verde <b>'Generar Siguiente Ronda'</b>.</li>
+            <li><b>Registrar Resultados:</b> Haz <b>doble clic</b> sobre un partido del calendario para editar el marcador, la fecha y asignar goles a jugadores.</li>
+            <li><b>Eliminar Errores:</b> Haz <b>clic derecho</b> sobre un partido si necesitas borrarlo.</li>
+            <li><b>Ver Clasificacion:</b> Consulta la tabla actualizada automaticamente en la seccion 'Clasificacion'.</li>
+        </ol>
+        <p><i>Nota: Es necesario completar todos los partidos de una ronda para poder generar la siguiente.</i></p>
+[MainController] <h3>Gestor de Torneos de Futbol</h3>
+        <p>Aplicacion para la gestion integral de competiciones deportivas.</p>
+        <hr>
+        <p><b>Autor:</b> Alex</p>
+        <p><b>Fecha de Actualizacion:</b> 29 de Enero de 2026</p>
+        <p><b>Version:</b> 1.0.0 (Release Final)</p>
+        <hr>
+        <p><i>Desarrollado con Python 3.13, PySide6 y SQLite.</i></p>
+[MainController] Acerca de - Gestor de Torneos
+[MainController] Archivos CSV (*.csv)
+[MainController] Ayuda - Guia Rapida
+[MainController] Col {col}
+[MainController] Configuracion
+[MainController] DG
+[MainController] Datos exportados correctamente.
+[MainController] E
+[MainController] English
+[MainController] Equipo
+[MainController] Error
+[MainController] Error al guardar: {error}
+[MainController] Español
+[MainController] Exito
+[MainController] G
+[MainController] GC
+[MainController] GF
+[MainController] Guardar Clasificacion
+[MainController] Idioma / Language:
+[MainController] No hay datos para exportar.
+[MainController] P
+[MainController] PJ
+[MainController] Pos
+[MainController] Pts
+[MainController] ⚙ Config. Reloj
+[MainWindow] Ayuda
+[MainWindow] Clasificación
+[MainWindow] Créditos
+[MainWindow] Equipos
+[MainWindow] Exportar CSV
+[MainWindow] Guardar tabla en Excel/CSV
+[MainWindow] Informes
+[MainWindow] Participantes
+[MainWindow] Partidos
+[MainWindow] Salir (Inicio)
+[RelojConfigView] ALARMA: {mensaje}
+[RelojConfigView] Alarma Activada
+[RelojConfigView] Aviso del Reloj
+[RelojConfigView] Configuración de Alarma y Tiempos
+[RelojConfigView] Control Manual
+[RelojConfigView] Cronómetro / Temporizador
+[RelojConfigView] Duración / Límite (Segundos):
+[RelojConfigView] Esperando señal...
+[RelojConfigView] Formato 24 Horas
+[RelojConfigView] Hora de Alarma (Modo Reloj):
+[RelojConfigView] Iniciar
+[RelojConfigView] Mensaje de Alarma:
+[RelojConfigView] Modo Cuenta Regresiva (Solo Timer)
+[RelojConfigView] Modo de Funcionamiento:
+[RelojConfigView] Pausar
+[RelojConfigView] Propiedades del Componente
+[RelojConfigView] Reiniciar
+[RelojConfigView] Reloj Digital (Hora)
+[RelojConfigView] SEÑAL RECIBIDA: timerFinished()
+[RelojConfigView] VISTA PREVIA DEL COMPONENTE
+[RelojConfigView] ¡Tiempo completado!
+[RelojDigital] ¡Aviso del Reloj!
+TOTAL 126

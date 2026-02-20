@@ -191,7 +191,7 @@ class ReportsService:
             result["csv_path"] = str(csv_path)
             result["internal_csv_path"] = str(csv_path)
 
-        if jasper_path.exists():
+        if generated_jasper and jasper_path.exists():
             result["jasper_path"] = str(jasper_path)
 
         dest = Path(output_dir).resolve() if output_dir else self.reports_dir.resolve()
@@ -654,7 +654,7 @@ class ReportsService:
                     }
                 )
 
-            ranking.sort(key=lambda x: (x["pts"], x["dg"], x["gf"], x["equipo"]), reverse=True)
+            ranking.sort(key=lambda x: (-x["pts"], -x["dg"], -x["gf"], str(x["equipo"]).lower()))
             cutoff = (len(ranking) + 1) // 2 if ranking else 0
 
             for i, row in enumerate(ranking, start=1):

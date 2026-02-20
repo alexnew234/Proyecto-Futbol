@@ -1,167 +1,90 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 """
-Script de prueba para verificar que el sistema de torneos funciona correctamente
+Prueba rapida de estructura de base de datos para el proyecto.
 """
+
+import sqlite3
 import sys
-<<<<<<< Updated upstream
-=======
 from pathlib import Path
-import pytest
->>>>>>> Stashed changes
-from PySide6.QtWidgets import QApplication
-from PySide6.QtSql import QSqlDatabase, QSqlQuery
-from Models.database import conectar
 
-def test_database_structure():
-    """Verifica la estructura de la base de datos"""
-    print("\n" + "="*60)
-    print("PRUEBA DE ESTRUCTURA DE BASE DE DATOS")
-    print("="*60)
-    
-    # Conectar a la base de datos
-    conectar()
-    
-    # Verificar tabla partidos
-    query = QSqlQuery()
-    query.exec('PRAGMA table_info(partidos)')
-    
-    campos = {}
-    while query.next():
-        campos[query.value(1)] = query.value(2)
-    
-    print("\n📋 Campos de la tabla 'partidos':")
-    for campo, tipo in campos.items():
-        print(f"   - {campo}: {tipo}")
-    
-    # Verificar campo ronda
-    if 'ronda' in campos:
-        print("\n✓ Campo 'ronda' presente correctamente")
-    else:
-        print("\n✗ Error: Campo 'ronda' no encontrado")
+from torneo_db.database import get_db_path, inicializar_db
+
+REQUIRED_TABLES = {
+    'equipos',
+    'participantes',
+    'partidos',
+}
+
+REQUIRED_COLUMNS = {
+    'equipos': {'id', 'nombre'},
+    'participantes': {'id', 'nombre', 'id_equipo', 'goles', 'tarjetas_amarillas', 'tarjetas_rojas'},
+    'partidos': {
+        'id',
+        'fase',
+        'equipo_local_id',
+        'equipo_visitante_id',
+        'goles_local',
+        'goles_visitante',
+        'jugado',
+    },
+}
+
+
+def fetch_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return {row[1] for row in rows}
+
+
+def test_database_structure() -> bool:
+    print('\n' + '=' * 60)
+    print('PRUEBA DE ESTRUCTURA DE BASE DE DATOS')
+    print('=' * 60)
+
+    if not inicializar_db():
+        print('[ERROR] No se pudo inicializar la base de datos.')
         return False
-<<<<<<< Updated upstream
-    
-    print("\n✓ Estructura de base de datos válida")
-    return True
-=======
-    return columna in _fetch_columns(tabla)
 
+    db_path = Path(get_db_path())
+    print(f'[OK] Base de datos: {db_path}')
 
-@pytest.fixture(scope="session", autouse=True)
-def _qt_app():
-    app = QApplication.instance() or QApplication(sys.argv)
-    yield app
+    if not db_path.exists():
+        print(f'[ERROR] No existe el archivo de BD: {db_path}')
+        return False
 
-
-def test_db_schema() -> None:
-    print("\n" + "=" * 60)
-    print("PRUEBA GLOBAL DE BASE DE DATOS")
-    print("=" * 60)
-
-    assert inicializar_db(), "\n[ERROR] No se pudo inicializar la BD."
-
-    db_path = get_db_path()
-    assert Path(db_path).exists(), f"\n[ERROR] No se encontro la BD en: {db_path}"
-    print(f"\n[OK] BD en: {db_path}")
-
-    # Tablas esperadas
-    tablas = {"equipos", "participantes", "partidos"}
-    q = QSqlQuery()
-    q.exec("SELECT name FROM sqlite_master WHERE type='table'")
-    existentes = set()
-    while q.next():
-        existentes.add(q.value(0))
-
-    faltan = tablas - existentes
-    assert not faltan, f"\n[ERROR] Faltan tablas: {', '.join(sorted(faltan))}"
-
-    # Columnas esperadas
-    req_equipos = {"id", "nombre", "curso", "color_camiseta", "ruta_escudo"}
-    req_participantes = {
-        "id",
-        "nombre",
-        "fecha_nacimiento",
-        "curso",
-        "tipo_participante",
-        "posicion",
-        "tarjetas_amarillas",
-        "tarjetas_rojas",
-        "goles",
-        "id_equipo",
-    }
-    req_partidos = {
-        "id",
-        "fase",
-        "equipo_local_id",
-        "equipo_visitante_id",
-        "goles_local",
-        "goles_visitante",
-        "jugado",
-        "hora",
-        "id_arbitro",
-        "fecha",
-    }
-
-    col_equipos = _fetch_columns("equipos")
-    col_participantes = _fetch_columns("participantes")
-
-    assert req_equipos.issubset(col_equipos), (
-        "\n[ERROR] Esquema de 'equipos' incompleto. "
-        f"Faltan: {req_equipos - col_equipos}"
-    )
-
-    assert req_participantes.issubset(col_participantes), (
-        "\n[ERROR] Esquema de 'participantes' incompleto. "
-        f"Faltan: {req_participantes - col_participantes}"
-    )
-
-    # La app agrega 'fecha' en runtime si no existe; lo garantizamos aqui.
-    assert _ensure_column("partidos", "fecha", "TEXT"), (
-        "\n[ERROR] No se pudo garantizar la columna 'fecha' en 'partidos'."
-    )
-
-    col_partidos = _fetch_columns("partidos")
-    assert req_partidos.issubset(col_partidos), (
-        "\n[ERROR] Esquema de 'partidos' incompleto. "
-        f"Faltan: {req_partidos - col_partidos}"
-    )
-
-    print("\n[OK] Esquema de BD valido.")
->>>>>>> Stashed changes
-
-def main():
-    # Crear aplicación
-    app = QApplication(sys.argv)
-<<<<<<< Updated upstream
-    
-    # Ejecutar pruebas
-    success = test_database_structure()
-    
-    if success:
-        print("\n" + "="*60)
-        print("TODAS LAS PRUEBAS PASARON ✓")
-        print("="*60)
-        print("\nLa aplicación está lista para usar")
-        print("\nFuncionalidades disponibles:")
-        print("  1. Generar Siguiente Ronda (botón verde en Calendario)")
-        print("  2. Ver Clasificación (botón azul en Calendario)")
-        print("  3. Rondas soportadas: Octavos, Cuartos, Semifinal, Final")
-        print("="*60 + "\n")
-    else:
-        print("\n✗ Las pruebas fallaron")
-        sys.exit(1)
-=======
+    conn = sqlite3.connect(db_path)
     try:
-        test_db_schema()
-        print("\n" + "=" * 60)
-        print("TODAS LAS PRUEBAS PASARON")
-        print("=" * 60)
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+
+        missing_tables = REQUIRED_TABLES - tables
+        if missing_tables:
+            print(f'[ERROR] Faltan tablas: {sorted(missing_tables)}')
+            return False
+
+        for table, expected_cols in REQUIRED_COLUMNS.items():
+            cols = fetch_columns(conn, table)
+            missing_cols = expected_cols - cols
+            if missing_cols:
+                print(f'[ERROR] Tabla {table}: faltan columnas {sorted(missing_cols)}')
+                return False
+
+        print('[OK] Estructura de base de datos valida.')
+        return True
+    finally:
+        conn.close()
+
+
+def main() -> int:
+    success = test_database_structure()
+    if success:
+        print('\nTODAS LAS PRUEBAS PASARON')
         return 0
-    except AssertionError as exc:
-        print(f"\n[FAIL] Las pruebas fallaron. {exc}")
-        return 1
 
->>>>>>> Stashed changes
+    print('\nLAS PRUEBAS FALLARON')
+    return 1
 
-if __name__ == "__main__":
-    main()
+
+if __name__ == '__main__':
+    sys.exit(main())

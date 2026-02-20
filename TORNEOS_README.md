@@ -1,63 +1,118 @@
-# ⚽ Gestor de Torneos de Fútbol
+# Gestor de Torneos de Futbol
 
-Aplicación de escritorio desarrollada en Python con PySide6 para la gestión integral de torneos, equipos, participantes, calendarios y clasificaciones automáticas.
+Aplicacion de escritorio (Python + PySide6) con gestion de equipos, participantes,
+partidos, clasificacion, componente reloj reutilizable e informes PDF/CSV.
 
----
+## Requisitos
 
-## 📋 Resumen de Implementación
+- Python 3.13
+- Java JDK (solo para Jasper en informes)
+- Libreria externa `torneo_db` instalada en editable:
 
-Se ha implementado un sistema modular completo con arquitectura MVC. El sistema gestiona automáticamente las fases del torneo (Octavos, Cuartos, Semifinal, Final), sincroniza estadísticas de jugadores con el marcador global y calcula la clasificación en tiempo real.
+```bash
+cd C:/ruta/torneofutbol_db
+pip install -e .
+```
 
----
+## Ejecucion en desarrollo
 
-## 🚀 Guía de Instalación (Imprescindible)
-
-Este proyecto utiliza una **arquitectura modular estricta**. El acceso a datos se ha separado en una librería externa para cumplir con los requisitos de diseño.
-
-<<<<<<< Updated upstream
-### 1. Instalación de la Librería de Base de Datos
-**Paso obligatorio.** El programa fallará si no se instala primero este módulo.
-Nota: Si utilizas directamente el archivo GestorTorneos.exe, no es necesario realizar esta instalación manual ya que la librería viene integrada en el ejecutable. Este paso es solo para ejecutar el código fuente (.py).
-
-1.  Abre una terminal.
-2.  Navega a la carpeta de la librería externa (`torneofutbol_db`):
-    cd ruta/a/torneofutbol_db
-
-
-3.  Instálala en el sistema:
-    pip install -e .
-
-
-### 3. Ejecución
-Ejecutable o 
+```bash
 python main.py
-=======
-**Ventana de Informes (Tarea 5)**
-- Abre `Informes` desde el menú superior.
-- La interfaz de informes está definida en `Views/reports_window.ui` (Qt Designer).
-- Selecciona uno de los 3 informes:
-  - `Informe Equipos y Jugadores`
-  - `Informe Partidos y Resultados`
-  - `Informe Clasificación y Eliminatorias`
-- Configura filtros opcionales: equipo, jugador destacado, eliminatoria y rango de fechas.
-- En `Partidos y Resultados` se incluye historial de enfrentamientos con resultados previos.
-- En `Clasificación y Eliminatorias` se incluye cuadro visual con indicadores `[OK]/[OUT]/[PEN]/[EQ]`.
-- Todos los reportes incluyen encabezado, pie con metadatos y numeración de página.
-- Elige la carpeta de salida para PDF/CSV y pulsa `Generar y guardar`.
-- Los archivos base (`.jrxml`, `.jasper`, `.pdf`, `.csv`) se generan en `reports/`.
-- Si eliges otra ruta de salida, se copia allí el PDF/CSV final.
+```
 
-**Requisitos para Jasper (generación PDF desde JRXML)**
-- `pip install pyreportjasper`
-- Java JDK instalado y `JAVA_HOME` válido.
-- Driver SQLite JDBC (`sqlite-jdbc*.jar`) en `reports/lib/`.
-  - Alternativamente, define `SQLITE_JDBC_JAR` con la ruta completa del `.jar`.
-- Si Jasper no está disponible, la app usa automáticamente un motor nativo de respaldo para no bloquear la generación.
+## Cumplimiento Tarea 4 (Reloj digital)
 
-**Consideraciones**
-- Las fases avanzan automáticamente: Octavos -> Cuartos -> Semifinal -> Final.
-- No se puede generar la siguiente ronda si hay partidos pendientes.
-- `Nueva Temporada` borra los partidos y reinicia estadísticas de jugadores.
-- La tabla de clasificación se recalcula al guardar resultados.
-- Puedes exportar la clasificación a CSV desde la pestaña `Clasificación`.
->>>>>>> Stashed changes
+- Componente reutilizable: `Views/reloj_widget.py` (`RelojDigital`).
+- Modo enumerado: `mode` con `clock` / `timer` (`ModoReloj`).
+- Propiedades publicas: `is24Hour`, `alarmEnabled`, `alarmHour`, `alarmMinute`,
+  `alarmMessage`, `duracionPartido`, `isCountDown`.
+- Senales: `alarmTriggered(str)` y `timerFinished()`.
+- Gestion interna de tiempo: `QTimer` cada 1 segundo.
+- Metodos publicos: `start()`, `pause()`, `reset()`.
+- Integracion en app de torneos:
+  - Dashboard y cabecera de partidos con reloj en tiempo real.
+  - Dialogo de edicion de partido con cronometro y controles.
+  - Configuracion desde app via propiedades/metodos publicos (sin tocar internals).
+- Reaccion a eventos:
+  - Etiqueta de aviso y popup al disparar alarma/senal.
+- Internacionalizacion Qt:
+  - Uso de `QTranslator` en `Controllers/main_controller.py`.
+  - Archivos `translations/app_es.ts`, `translations/app_en.ts`.
+  - Compilados `translations/app_es.qm`, `translations/app_en.qm`.
+
+## Traducciones Qt (regenerar)
+
+```bash
+# lupdate (extraer textos a .ts)
+pyside6-lupdate main.py Controllers/*.py Views/*.py -ts translations/app_es.ts translations/app_en.ts
+
+# lrelease (compilar .qm)
+pyside6-lrelease translations/app_es.ts -qm translations/app_es.qm
+pyside6-lrelease translations/app_en.ts -qm translations/app_en.qm
+```
+
+## Entregables ejecutables
+
+- Aplicacion principal: `dist/GestorTorneos.exe`
+- Componente reloj standalone: `dist/RelojComponente.exe`
+
+Ejemplo de compilacion:
+
+```bash
+pyinstaller GestorTorneos.spec
+pyinstaller --noconfirm --onefile --windowed --name RelojComponente reloj_app.py
+```
+
+## Informes (Tarea 5)
+
+Carpeta de trabajo: `reports/`
+
+- Plantillas JRXML: `reports/informe_*.jrxml`
+- JDBC SQLite: `reports/lib/sqlite-jdbc-*.jar`
+- Adapter ejemplo para JasperStudio: `reports/SQLITE_adapter_torneo.jrdax`
+
+### Uso de la ventana de informes
+
+1. Abrir `Informes` desde la barra principal.
+2. Seleccionar tipo de informe:
+   - Equipos y Jugadores
+   - Partidos y Resultados
+   - Clasificacion y Eliminatorias
+3. Configurar filtros opcionales:
+   - Equipo / Jugador destacado (informe 1)
+   - Eliminatoria (informes 2 y 3)
+   - Fecha desde / hasta (todos)
+4. Elegir destino PDF/CSV (opcional).  
+   Nota: aunque se copie al destino elegido, los archivos internos se generan en `reports/`.
+5. Marcar o desmarcar:
+   - `Exportar CSV`
+   - `Forzar motor nativo (sin Jasper)`
+6. Pulsar `Generar y guardar`.
+7. Verificar en log:
+   - `Motor: Jasper` o `Motor: Nativo`
+   - ruta de PDF, CSV y `.jasper` (si aplico Jasper)
+
+### Jasper en cualquier maquina
+
+Para usar motor Jasper:
+
+- Java JDK instalado (con `jvm.dll` disponible)
+- `sqlite-jdbc-*.jar` en `reports/lib/`
+
+Si falta Java/JDBC, la aplicacion entra automaticamente en motor nativo.
+
+### JasperStudio (edicion de plantillas)
+
+- Abrir `reports/informe_*.jrxml` en JasperStudio.
+- Configurar Data Adapter SQLite con JDBC URL:
+  - `jdbc:sqlite:C:/Users/<usuario>/TorneoFutbolData/torneo_futbol.db`
+- Driver class: `org.sqlite.JDBC`
+- Jar: `reports/lib/sqlite-jdbc-3.41.2.2.jar` (o version disponible)
+
+### Archivos generados
+
+En cada ejecucion se generan (timestamp):
+
+- PDF: `reports/informe_*_YYYYMMDD_HHMMSS.pdf`
+- CSV (si se marca): `reports/informe_*_YYYYMMDD_HHMMSS.csv`
+- Jasper compilado (si motor Jasper): `reports/informe_*_YYYYMMDD_HHMMSS.jasper`

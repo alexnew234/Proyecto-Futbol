@@ -1,21 +1,23 @@
-# -*- mode: python ; coding: utf-8 -*-
+﻿# -*- mode: python ; coding: utf-8 -*-
+
+import os
+
+project_root = os.path.abspath('.')
+db_lib_path = os.path.join(os.path.expanduser('~'), 'Desktop', 'torneofutbol_db')
+data_dirs = []
+
+for folder_name in ('Resources', 'translations', 'reports'):
+    folder_path = os.path.join(project_root, folder_name)
+    if os.path.exists(folder_path):
+        data_dirs.append((folder_path, folder_name))
 
 
 a = Analysis(
     ['main.py'],
-    pathex=['C:\\Users\\Alex\\Desktop\\torneofutbol_db'],
+    pathex=[project_root, db_lib_path],
     binaries=[],
-<<<<<<< Updated upstream
-    datas=[('Resources', 'Resources')],
-    hiddenimports=['torneo_db'],
-=======
-    datas=[
-        (os.path.join(project_root, "Resources"), "Resources"),
-        (os.path.join(project_root, "translations"), "translations"),
-        (os.path.join(project_root, "reports"), "reports"),
-    ],
+    datas=data_dirs,
     hiddenimports=['torneo_db', 'pyreportjasper', 'jpype', 'jpype.imports'],
->>>>>>> Stashed changes
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

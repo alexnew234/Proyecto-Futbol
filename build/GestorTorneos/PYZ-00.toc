@@ -44,8 +44,6 @@
   ('Views.main_window_ui',
    'C:\\Users\\Alex\\Desktop\\Clase\\DI\\Proyecto_Futbol\\Views\\main_window_ui.py',
    'PYMODULE'),
-<<<<<<< Updated upstream
-=======
   ('Views.reloj_config_view',
    'C:\\Users\\Alex\\Desktop\\Clase\\DI\\Proyecto_Futbol\\Views\\reloj_config_view.py',
    'PYMODULE'),
@@ -61,7 +59,6 @@
   ('Views.reports_window_ui',
    'C:\\Users\\Alex\\Desktop\\Clase\\DI\\Proyecto_Futbol\\Views\\reports_window_ui.py',
    'PYMODULE'),
->>>>>>> Stashed changes
   ('__future__',
    'C:\\Users\\Alex\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\__future__.py',
    'PYMODULE'),

@@ -1,0 +1,239 @@
+Enunciado Tarea 5  – Tema 7: Informes en la aplicación de Torneo de 
+Fútbol 
+Título: Ampliación de la aplicación de gestión del torneo de fútbol: generación de 
+informes en PDF desde Python y JasperSoft Studio. 
+ 
+Descripción: 
+En esta tarea se ampliará la aplicación de gestión del torneo de fútbol desarrollada 
+previamente para incluir una ventana de informes independiente  que permita generar 
+reportes en PDF basados en los datos de la base de datos del torneo. 
+Los informes se diseñarán utilizando JasperSoft Studio y se generarán o convertirán de 
+JRXML a PDF desde Python. La interfaz se desarrollará con Qt Designer, siguiendo el 
+modelo MVC de la aplicación. 
+Los informes deberán mostr ar información completa y clara sobre equipos, jugadores, 
+partidos y eliminatorias, con posibilidad de filtrar por parámetros opcionales. Se 
+incorporarán elementos visuales consistentes con la interfaz principal del torneo, 
+incluyendo logotipo, colores y e ncabezados claros, así como numeración de páginas y 
+fecha de generación. 
+ 
+Informes a generar: 
+1. Informe Equipos y Jugadores 
+ Listado completo de todos los equipos registrados en el torneo. 
+ Para cada equipo, listado de jugadores con: 
+o Posición 
+o Goles 
+o Tarjetas amarillas y rojas 
+ Estadísticas acumuladas por equipo: 
+o Total de goles 
+o Total de tarjetas amarillas y rojas 
+o Promedio de goles por jugador 
+ Destacar jugadores con más goles y más tarjetas dentro de cada equipo. 
+ Orden alfabético de equipos y de jugadores dentro de cada equipo. 
+ Parámetro opcional: filtrar por equipo específico. 
+2. Informe Partidos y Resultados 
+ Listado de todos los partidos programados. 
+ Información mostrada: 
+o Equipos participantes 
+o Árbitro asignado 
+o Fecha y hora 
+o Eliminatoria 
+o Resultados si el partido ha sido jugado 
+ Mostrar historial de enfrentamientos entre dos equipos, incluyendo resultados 
+de partidos anteriores. 
+ Resaltar partidos pendientes de jugar. 
+ Orden cronológico y por eliminatoria. 
+ Parámetro opcional: filtrar por eliminatoria. 
+3. Informe Clasificación y Eliminatorias 
+ Tabla de clasificación de equipos según los resultados obtenidos. 
+ Cuadro de emparejamientos por eliminatoria: octavos → cuartos → semifinal → 
+final. 
+ Estadísticas globales del torneo: 
+o Total de goles por eliminatoria 
+o Total de tarjetas 
+o Promedio de goles por partido 
+ Tabla comparativa de rendimiento : equipos con más victorias, más goles, 
+menos goles recibidos 
+ Cuadro de eliminatorias más visual : incluir colores o iconos para equipos 
+clasificados o eliminados 
+ Parámetro opcional: filtrar por eliminatoria específica. 
+ 
+Elementos generales aplicables a todos los informes 
+ Uso del logotipo y colores del torneo para consistencia visual. 
+ Encabezados con nombre del torneo, fecha y hora de generación del informe. 
+ Numeración de páginas y pie de página con información adicional. 
+ Campos parametrizados: 
+o Filtrar por equipo, jugador destacado o eliminatoria 
+o Filtrar por fecha o rango de fechas 
+ Exportación a PDF y posibilidad de CSV para estadísticas. 
+ 
+Requisitos de la ventana de informes 
+ Ventana independiente dentro de la aplicación principal. 
+ Desplegable o lista para seleccionar el informe a generar. 
+ Botón para generar y guardar los informes en PDF. 
+ Posibilidad de seleccionar la ruta de almacenamiento de los PDFs. 
+ Gestión de parámetros opcionales (equipo y eliminatoria). 
+ Mantener estilo visual y consistencia con la interfaz principal de la aplicación. 
+ 
+Requisitos técnicos 
+ Informes diseñados en JasperSoft Studio (.jrxml)  y convertidos a PDF desde 
+Python. 
+ Mantener el patrón MVC: separar lógica de base de datos, generación de informes 
+e interfaz gráfica. 
+ Base de datos SQLite o MySQL utilizada en la aplicación como fuente de datos. 
+ Evitar repeticiones innecesarias y organizar la información de forma clara. 
+ Todos los archivos generados (.jrxml, .jasper y PDFs) deben guardarse en la 
+carpeta reports dentro del proyecto. 
+ 
+Criterios de evaluación (total 10 puntos) 
+Criterio Excelente Satisfactorio Insuficiente Puntos 
+Informe 
+Equipos y 
+Jugadores 
+Todos los equipos y 
+jugadores incluidos, 
+estadísticas acumuladas 
+correctas, jugadores 
+destacados señalados, 
+orden alfabético 
+correcto y filtros 
+funcionando. 
+Presentación clara y 
+visual. 
+Informe completo, 
+pero algunas 
+estadísticas o 
+destacados 
+incorrectos o filtros 
+aplicados 
+parcialmente. 
+Informe 
+incompleto o con 
+errores graves en 
+datos, estadísticas o 
+filtros. 
+2 
+Informe 
+Partidos y 
+Resultados 
+Todos los partidos 
+listados, historial de 
+enfrentamientos 
+completos, resultados 
+exactos, partidos 
+pendientes resaltados, 
+orden cronológico y por 
+eliminatoria correcto. 
+Parte de los partidos 
+listados o historial 
+incompleto, algunos 
+errores en resultados 
+o orden. 
+Informe 
+incompleto o no 
+funcional, con 
+datos importantes 
+faltantes o 
+incorrectos. 
+2 
+Informe 
+Clasificación y 
+Eliminatorias 
+Clasificación correcta 
+con estadísticas 
+globales, cuadro de 
+eliminatorias visual y 
+comprensible, tabla 
+comparativa de 
+rendimiento completa. 
+Clasificación 
+correcta pero 
+estadísticas 
+incompletas, cuadro 
+de eliminatorias 
+parcial o confuso. 
+Clasificación 
+incorrecta o 
+inexistente, 
+estadísticas 
+faltantes, cuadro de 
+eliminatorias 
+ausente o 
+incorrecto. 
+2 
+Funcionalidad 
+de parámetros 
+en informes 
+Todos los filtros 
+opcionales funcionan 
+correctamente y se 
+aplican de manera 
+consistente. 
+La mayoría de filtros 
+funcionan 
+correctamente, 
+algunos aplican 
+parcialmente. 
+Filtros no 
+funcionales o 
+inexistentes. 
+1 
+Integración en 
+la ventana de 
+la aplicación 
+Ventana de informes 
+totalmente integrada, 
+interfaz clara y 
+Ventana funcional, 
+con problemas 
+Ventana no 
+integrada o no 
+funcional. 
+1 
+Criterio Excelente Satisfactorio Insuficiente Puntos 
+consistente con la 
+aplicación principal, 
+botón de generación y 
+selección de rutas 
+funcionando. 
+menores de interfaz 
+o flujo. 
+Presentación y 
+claridad de los 
+informes 
+Informes bien 
+organizados, con 
+logotipo, encabezados, 
+numeración de páginas 
+y estilo visual 
+consistente, fáciles de 
+leer e interpretar. 
+Informes legibles, 
+pero con problemas 
+de organización, 
+encabezados o estilo 
+visual. 
+Informes 
+desorganizados, 
+difíciles de leer, sin 
+estilo visual ni 
+logotipo. 
+2 
+ 
+ 
+Entregables 
+ Subir el proyecto comprimido a la tarea / al repositorio de github. 
+ Debe incluir: 
+o Ejecutable (.exe) de la aplicación del torneo con la nueva ventana de 
+informes y generación de PDFs. 
+o Archivos .jrxml, .jasper y PDFs generados. 
+o Carpeta reports con todos los archivos de informes. 
+o README o Aclaración.txt con instrucciones de uso de la ventana de 
+informes y cualquier detalle adicional. 
+ 
+Notas 
+ Mantener consistencia visual y estilo de la aplicación principal. 
+ Incluir logotipo y nombre del torneo en todos los informes. 
+ Distribuir la información de forma clara y comprensible en todas las secciones. 
+ Verificar que los informes se generen correctamente en cualquier máquina 
+siguiendo las instrucciones del README. 
+ 

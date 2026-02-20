@@ -146,7 +146,14 @@ ORDER BY r.posicion
             <textField>
                 <reportElement x="108" y="44" width="694" height="24"/>
                 <textElement><font size="10"/></textElement>
-                <textFieldExpression><![CDATA["Generado: " + $P{P_GENERADO} + " | Eliminatoria: " + ($P{P_ELIMINATORIA} == null || $P{P_ELIMINATORIA}.trim().isEmpty() ? "Todas" : $P{P_ELIMINATORIA})]]></textFieldExpression>
+                <textFieldExpression><![CDATA[
+                    "Generado: " + $P{P_GENERADO}
+                    + " | Eliminatoria: " + ($P{P_ELIMINATORIA} == null || $P{P_ELIMINATORIA}.trim().isEmpty() ? "Todas" : $P{P_ELIMINATORIA})
+                    + " | Fechas: "
+                    + (($P{P_FECHA_DESDE} == null || $P{P_FECHA_DESDE}.trim().isEmpty()) ? "-" : $P{P_FECHA_DESDE})
+                    + " a "
+                    + (($P{P_FECHA_HASTA} == null || $P{P_FECHA_HASTA}.trim().isEmpty()) ? "-" : $P{P_FECHA_HASTA})
+                ]]></textFieldExpression>
             </textField>
         </band>
     </title>
@@ -214,8 +221,17 @@ ORDER BY r.posicion
             <textField><reportElement x="0" y="54" width="802" height="16"/><textFieldExpression><![CDATA["Goles por eliminatoria: " + $V{V_GOLES_FASE}]]></textFieldExpression></textField>
             <textField isStretchWithOverflow="true">
                 <reportElement x="0" y="72" width="802" height="44"/>
-                <textElement><font size="9"/></textElement>
-                <textFieldExpression><![CDATA["Cuadro eliminatorias: " + $V{V_CUADRO}]]></textFieldExpression>
+                <textElement markup="html"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[
+                    "Cuadro eliminatorias: "
+                    + (
+                        ($V{V_CUADRO} == null ? "Sin eliminatorias" : $V{V_CUADRO})
+                            .replace("[OK]", "<font color='#1B5E20'><b>[OK]</b></font>")
+                            .replace("[OUT]", "<font color='#B71C1C'><b>[OUT]</b></font>")
+                            .replace("[PEN]", "<font color='#EF6C00'><b>[PEN]</b></font>")
+                            .replace("[EQ]", "<font color='#1565C0'><b>[EQ]</b></font>")
+                    )
+                ]]></textFieldExpression>
             </textField>
             <staticText>
                 <reportElement x="0" y="118" width="802" height="16"/>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>415</width>
+    <height>408</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QLabel" name="label_horas">
+     <property name="styleSheet">
+      <string notr="true">QLabel {
+    color: #E0190B;             /* Verde Neón tipo LCD */
+    background-color: transparent; /* Fondo transparente para ver el negro de atrás */
+    font-family: &quot;Courier New&quot;; /* Fuente monoespaciada (ancho fijo) */
+    font-weight: bold;
+    font-size:  30px;            /* Tamaño grande */
+    border: none;               /* Sin bordes individuales */
+}</string>
+     </property>
+     <property name="text">
+      <string>10</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_dos_puntos">
+     <property name="styleSheet">
+      <string notr="true">QLabel {
+    color: #E0190B;             /* Verde Neón tipo LCD */
+    background-color: transparent; /* Fondo transparente para ver el negro de atrás */
+    font-family: &quot;Courier New&quot;; /* Fuente monoespaciada (ancho fijo) */
+    font-weight: bold;
+    font-size: 30px;            /* Tamaño grande */
+    border: none;               /* Sin bordes individuales */
+}</string>
+     </property>
+     <property name="text">
+      <string>:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_minutos">
+     <property name="styleSheet">
+      <string notr="true">QLabel {
+    color: #E0190B;             /* Verde Neón tipo LCD */
+    background-color: transparent; /* Fondo transparente para ver el negro de atrás */
+    font-family: &quot;Courier New&quot;; /* Fuente monoespaciada (ancho fijo) */
+    font-weight: bold;
+    font-size: 30px;            /* Tamaño grande */
+    border: none;               /* Sin bordes individuales */
+}</string>
+     </property>
+     <property name="text">
+      <string>23</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_dos_puntos_2">
+     <property name="styleSheet">
+      <string notr="true">QLabel {
+    color: #E0190B;             /* Verde Neón tipo LCD */
+    background-color: transparent; /* Fondo transparente para ver el negro de atrás */
+    font-family: &quot;Courier New&quot;; /* Fuente monoespaciada (ancho fijo) */
+    font-weight: bold;
+    font-size: 30px;            /* Tamaño grande */
+    border: none;               /* Sin bordes individuales */
+}</string>
+     </property>
+     <property name="text">
+      <string>:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_segundos">
+     <property name="styleSheet">
+      <string notr="true">QLabel {
+    color: #E0190B;             /* Verde Neón tipo LCD */
+    background-color: transparent; /* Fondo transparente para ver el negro de atrás */
+    font-family: &quot;Courier New&quot;; /* Fuente monoespaciada (ancho fijo) */
+    font-weight: bold;
+    font-size: 30px;            /* Tamaño grande */
+    border: none;               /* Sin bordes individuales */
+}</string>
+     </property>
+     <property name="text">
+      <string>56</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

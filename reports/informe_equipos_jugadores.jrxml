@@ -103,6 +103,7 @@ ORDER BY pl.equipo ASC, jugador ASC
                 <textFieldExpression><![CDATA[
                     "Generado: " + $P{P_GENERADO}
                     + " | Equipo: " + ($P{P_EQUIPO} == null || $P{P_EQUIPO}.trim().isEmpty() ? "Todos" : $P{P_EQUIPO})
+                    + " | Jugador: " + ($P{P_JUGADOR_DESTACADO} == null || $P{P_JUGADOR_DESTACADO}.trim().isEmpty() ? "Todos" : $P{P_JUGADOR_DESTACADO})
                     + " | Fechas: "
                     + (($P{P_FECHA_DESDE} == null || $P{P_FECHA_DESDE}.trim().isEmpty()) ? "-" : $P{P_FECHA_DESDE})
                     + " a "

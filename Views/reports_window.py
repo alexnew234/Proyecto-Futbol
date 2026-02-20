@@ -1,4 +1,4 @@
-from PySide6.QtCore import QDate
+from PySide6.QtCore import QDate, QEvent
 from PySide6.QtWidgets import QDialog, QFileDialog
 
 from Views.reports_window_ui import Ui_ReportsWindow
@@ -13,6 +13,9 @@ class ReportsWindow(QDialog):
 
         self._bind_compat_attrs()
         self._setup_defaults()
+
+    def retranslate_ui(self):
+        self.ui.retranslateUi(self)
 
     def _bind_compat_attrs(self):
         # Compatibilidad con el controlador actual (acceso directo a widgets).
@@ -58,3 +61,8 @@ class ReportsWindow(QDialog):
 
     def clear_log(self):
         self.output_log.clear()
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.LanguageChange:
+            self.retranslate_ui()
