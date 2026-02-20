@@ -16,6 +16,7 @@ class ReportsWindow(QDialog):
 
     def retranslate_ui(self):
         self.ui.retranslateUi(self)
+        self._apply_fixed_date_format()
 
     def _bind_compat_attrs(self):
         # Compatibilidad con el controlador actual (acceso directo a widgets).
@@ -44,12 +45,18 @@ class ReportsWindow(QDialog):
         self.combo_equipo.clear()
         self.combo_equipo.addItem("Todos", "")
 
+        self._apply_fixed_date_format()
         self.date_desde.setDate(QDate.currentDate().addMonths(-1))
         self.date_hasta.setDate(QDate.currentDate())
         self.date_desde.setEnabled(False)
         self.date_hasta.setEnabled(False)
         self.chk_fecha_desde.toggled.connect(self.date_desde.setEnabled)
         self.chk_fecha_hasta.toggled.connect(self.date_hasta.setEnabled)
+
+    def _apply_fixed_date_format(self):
+        # Formato fijo independientemente del locale/SO.
+        self.date_desde.setDisplayFormat("dd-MM-yyyy")
+        self.date_hasta.setDisplayFormat("dd-MM-yyyy")
 
     def browse_output_dir(self):
         folder = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta de salida")
