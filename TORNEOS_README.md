@@ -14,31 +14,15 @@ cd C:/ruta/torneofutbol_db
 pip install -e .
 ```
 
+Nota:
+- Estos requisitos aplican para ejecutar en desarrollo (`python main.py`).
+- Si se ejecuta con `dist/GestorTorneos.exe`, no hace falta instalar Python ni `torneo_db`.
+
 ## Ejecucion en desarrollo
 
 ```bash
 python main.py
 ```
-
-## Cumplimiento Tarea 4 (Reloj digital)
-
-- Componente reutilizable: `Views/reloj_widget.py` (`RelojDigital`).
-- Modo enumerado: `mode` con `clock` / `timer` (`ModoReloj`).
-- Propiedades publicas: `is24Hour`, `alarmEnabled`, `alarmHour`, `alarmMinute`,
-  `alarmMessage`, `duracionPartido`, `isCountDown`.
-- Senales: `alarmTriggered(str)` y `timerFinished()`.
-- Gestion interna de tiempo: `QTimer` cada 1 segundo.
-- Metodos publicos: `start()`, `pause()`, `reset()`.
-- Integracion en app de torneos:
-  - Dashboard y cabecera de partidos con reloj en tiempo real.
-  - Dialogo de edicion de partido con cronometro y controles.
-  - Configuracion desde app via propiedades/metodos publicos (sin tocar internals).
-- Reaccion a eventos:
-  - Etiqueta de aviso y popup al disparar alarma/senal.
-- Internacionalizacion Qt:
-  - Uso de `QTranslator` en `Controllers/main_controller.py`.
-  - Archivos `translations/app_es.ts`, `translations/app_en.ts`.
-  - Compilados `translations/app_es.qm`, `translations/app_en.qm`.
 
 ## Traducciones Qt (regenerar)
 
@@ -63,6 +47,15 @@ pyinstaller GestorTorneos.spec
 pyinstaller --noconfirm --onefile --windowed --name RelojComponente reloj_app.py
 ```
 
+## Ejecucion en otro ordenador (EXE)
+
+1. Descargar o copiar el proyecto completo.
+2. Ejecutar `dist/GestorTorneos.exe` con doble clic.
+3. Para informes con Jasper:
+   - Java JDK instalado en el sistema.
+   - `sqlite-jdbc-*.jar` disponible en `reports/lib/`.
+4. Si Java/JDBC no esta disponible, la app genera informes con motor nativo.
+
 ## Informes (Tarea 5)
 
 Carpeta de trabajo: `reports/`
@@ -79,8 +72,8 @@ Carpeta de trabajo: `reports/`
    - Partidos y Resultados
    - Clasificacion y Eliminatorias
 3. Configurar filtros opcionales:
-   - Equipo / Jugador destacado (informe 1)
-   - Eliminatoria (informes 2 y 3)
+   - Equipo / Jugador destacado
+   - Eliminatoria
    - Fecha desde / hasta (todos)
 4. Elegir destino PDF/CSV (opcional).  
    Nota: aunque se copie al destino elegido, los archivos internos se generan en `reports/`.
